@@ -7,11 +7,6 @@
       "maxDuration": 30
     }
   },
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "GMAIL_USER": "@gmail_user",
-    "GMAIL_PASS": "@gmail_pass"
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
