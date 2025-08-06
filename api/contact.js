@@ -1,13 +1,23 @@
-const express = require('express');
-const cors = require('cors');
 const { sendNotification } = require('./lib/email');
 
-const app = express();
+module.exports = async (req, res) => {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-app.use(cors());
-app.use(express.json());
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
 
-app.post('/api/contact', async (req, res) => {
+  if (req.method !== 'POST') {
+    return res.status(405).json({
+      success: false,
+      message: 'Method not allowed'
+    });
+  }
+
   try {
     const { name, email, message } = req.body;
 
@@ -121,11 +131,4 @@ app.post('/api/contact', async (req, res) => {
       message: 'An error occurred while processing your request. Please try again.'
     });
   }
-});
-
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Contact API server running on port ${PORT}`);
-});
-
-module.exports = app; 
+}; 
