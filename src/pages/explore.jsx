@@ -64,6 +64,20 @@ const Explore = () => {
   const [hasMoreBlogs, setHasMoreBlogs] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showCategoryDropdown && !event.target.closest('.category-dropdown')) {
+        setShowCategoryDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCategoryDropdown]);
+
   // Check authentication
   useEffect(() => {
     if (!loading && !user) {
@@ -492,11 +506,11 @@ const Explore = () => {
             <div className="flex items-center space-x-8">
               {/* Logo */}
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg">
-                  <BookOpen className="h-6 w-6 text-white" />
+                <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">B</span>
                 </div>
-                <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                  BlogHive
+                <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  BlogSyte
                 </span>
               </div>
 
@@ -548,7 +562,7 @@ const Explore = () => {
             </div>
 
             {/* Category Filter */}
-            <div className="relative">
+            <div className="relative category-dropdown">
               <button
                 onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
                 className="flex items-center space-x-2 px-4 py-3 border border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm hover:bg-white/70 transition-colors w-full lg:w-auto"
@@ -561,7 +575,7 @@ const Explore = () => {
               </button>
 
               {showCategoryDropdown && (
-                <div className="absolute top-full left-0 mt-2 w-full lg:w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-10">
+                <div className="absolute top-full left-0 mt-2 w-full lg:w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto lg:right-0 lg:left-auto">
                   <div className="p-2">
                     {categories.map((category) => {
                       const Icon = category.icon;
