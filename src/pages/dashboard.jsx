@@ -193,7 +193,7 @@ const Dashboard = () => {
     if (!user?.id) return;
     
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.USER_DASHBOARD}/${user.id}`);
+      const response = await fetch(`${config.API_ENDPOINTS.USER_DASHBOARD}?userId=${user.id}`);
       const data = await response.json();
       
       if (data.success) {
