@@ -23,6 +23,7 @@ import {
 import MainLayout from '../components/layout/main-layout';
 import { Button } from '../components/ui/button';
 import BlogCard from '../components/blog/blog-card';
+import { config } from '../lib/config';
 
 // Sample data for featured blogs
 const featuredBlogs = [
@@ -32,7 +33,7 @@ const featuredBlogs = [
     description: 'Exploring upcoming trends in web development and what technologies will define the future of the web.',
     coverImage: 'https://images.unsplash.com/photo-1550439062-609e1531270e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80',
     author: {
-      name: 'Emily Johnson',
+      name: 'Ammad Ahmed',
       avatar: 'https://randomuser.me/api/portraits/women/12.jpg'
     },
     date: 'Aug 1, 2025',
@@ -68,8 +69,8 @@ const featuredBlogs = [
 const features = [
   {
     icon: <Sparkles className="h-8 w-8" />,
-    title: 'AI-Powered Writing',
-    description: 'Advanced AI assistance to help you create compelling content faster and more efficiently.',
+    title: 'BlogSyte',
+    description: 'Create, post, edit, and manage your blogs seamlessly on a clean and simple platform.',    
     gradient: 'from-purple-500 to-pink-500'
   },
   {
@@ -132,12 +133,37 @@ export default function HomePage() {
     setIsVisible(true);
   }, []);
 
-  const handleContactSubmit = (e) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState('');
+
+  const handleContactSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission
-    console.log('Contact form submitted:', contactForm);
-    // Reset form
-    setContactForm({ name: '', email: '', message: '' });
+    setIsSubmitting(true);
+    setSubmitMessage('');
+
+    try {
+      const response = await fetch(config.API_ENDPOINTS.CONTACT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contactForm),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSubmitMessage('Thank you for your message! We will get back to you within 3 business days.');
+        setContactForm({ name: '', email: '', message: '' });
+      } else {
+        setSubmitMessage(data.message || 'Failed to send message. Please try again.');
+      }
+    } catch (error) {
+      console.error('Contact form error:', error);
+      setSubmitMessage('An error occurred. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -211,7 +237,7 @@ export default function HomePage() {
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" className="group border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white transition-all duration-300 transform hover:scale-105 whitespace-nowrap" asChild>
-                  <Link to="/signup">
+                  <Link to="/login">
                     <span className="flex items-center">
                       Explore Blogs
                       <ExternalLink className="ml-2 h-5 w-5 group-hover:rotate-12 transition-transform" />
@@ -367,11 +393,22 @@ export default function HomePage() {
                 <Button 
                   type="submit" 
                   size="lg"
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 group"
+                  disabled={isSubmitting}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Send Message
+                  {isSubmitting ? 'Sending...' : 'Send Message'}
                   <Send className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
+                
+                {submitMessage && (
+                  <div className={`mt-4 p-4 rounded-lg text-center ${
+                    submitMessage.includes('Thank you') 
+                      ? 'bg-green-50 text-green-800 border border-green-200' 
+                      : 'bg-red-50 text-red-800 border border-red-200'
+                  }`}>
+                    {submitMessage}
+                  </div>
+                )}
               </form>
             </div>
 
@@ -388,7 +425,7 @@ export default function HomePage() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">Email</p>
-                      <p className="text-gray-600">hello@blogsyte.com</p>
+                      <p className="text-gray-600">blogsyte@gmail.com</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
@@ -397,7 +434,7 @@ export default function HomePage() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">Phone</p>
-                      <p className="text-gray-600">+1 (555) 123-4567</p>
+                      <p className="text-gray-600">+92 314 1038814</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
@@ -406,7 +443,7 @@ export default function HomePage() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">Location</p>
-                      <p className="text-gray-600">San Francisco, CA</p>
+                      <p className="text-gray-600">Karachi, Pakistan</p>
                     </div>
                   </div>
                 </div>
@@ -429,19 +466,19 @@ export default function HomePage() {
                 <span className="text-xl font-bold">BlogSyte</span>
               </div>
               <p className="text-gray-400 mb-6 max-w-md">
-                Empowering creators to share their stories with the world. Join our community and start your blogging journey today.
+                Empowering creators to share their stories with the world. Join our community and start your blogging journey today. Follow Developer !
               </p>
               <div className="flex space-x-4">
-                <a href="#" className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-purple-600 transition-colors duration-300">
+                {/* <a href="#" className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-purple-600 transition-colors duration-300">
                   <Twitter className="h-5 w-5" />
-                </a>
-                <a href="#" className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-purple-600 transition-colors duration-300">
+                </a> */}
+                <a href="https://github.com/ahmedammad1709" target='_blank' className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-purple-600 transition-colors duration-300">
                   <Github className="h-5 w-5" />
                 </a>
-                <a href="#" className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-purple-600 transition-colors duration-300">
+                <a href="https://www.linkedin.com/in/ammad-ahmed-608156338/" target='_blank' className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-purple-600 transition-colors duration-300">
                   <Linkedin className="h-5 w-5" />
                 </a>
-                <a href="#" className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-purple-600 transition-colors duration-300">
+                <a href="https://www.instagram.com/ammad_innovates/" target='_blank' className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-purple-600 transition-colors duration-300">
                   <Instagram className="h-5 w-5" />
                 </a>
               </div>
@@ -472,7 +509,7 @@ export default function HomePage() {
 
           <div className="border-t border-gray-800 mt-12 pt-8 text-center">
             <p className="text-gray-400">
-              © 2025 BlogSyte. Made with <Heart className="inline h-4 w-4 text-red-500" /> for creators worldwide.
+              © 2025 BlogSyte. Made with <Heart className="inline h-4 w-4 text-red-500" /> by Ammad Ahmed for creators worldwide.
             </p>
           </div>
         </div>

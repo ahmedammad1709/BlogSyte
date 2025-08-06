@@ -37,6 +37,7 @@ export const config = {
     BLOG_VIEW: `${API_BASE_URL}/api/blogs`,
     BLOG_COMMENT: `${API_BASE_URL}/api/blogs`,
     BLOG_COMMENTS: `${API_BASE_URL}/api/blogs`,
+    CONTACT: `${API_BASE_URL}/api/contact`,
   }
 };
 
