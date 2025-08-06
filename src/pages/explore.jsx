@@ -524,7 +524,7 @@ const Explore = () => {
 
             {/* User Info */}
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 bg-gray-100 px-4 py-2 rounded-lg">
+              <div className="hidden sm:flex items-center space-x-2 bg-gray-100 px-4 py-2 rounded-lg">
                 <User className="h-5 w-5 text-purple-600" />
                 <span className="text-sm font-medium text-gray-700">{user.name}</span>
               </div>
@@ -575,30 +575,34 @@ const Explore = () => {
               </button>
 
               {showCategoryDropdown && (
-                <div className="absolute top-full left-0 mt-2 w-full lg:w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto lg:right-0 lg:left-auto">
-                  <div className="p-2">
-                    {categories.map((category) => {
-                      const Icon = category.icon;
-                      return (
-                        <button
-                          key={category.id}
-                          onClick={() => {
-                            setSelectedCategory(category.id);
-                            setShowCategoryDropdown(false);
-                          }}
-                          className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                            selectedCategory === category.id
-                              ? 'bg-purple-50 text-purple-700'
-                              : 'hover:bg-gray-50'
-                          }`}
-                        >
-                          <Icon className="h-4 w-4" />
-                          <span>{category.name}</span>
-                        </button>
-                      );
-                    })}
+                <>
+                  {/* Backdrop overlay for mobile */}
+                  <div className="fixed inset-0 bg-black bg-opacity-25 z-[9998] lg:hidden" onClick={() => setShowCategoryDropdown(false)} />
+                  <div className="absolute top-full left-0 mt-2 w-full lg:w-64 bg-white rounded-xl shadow-2xl border border-gray-200 z-[9999] max-h-96 overflow-y-auto lg:right-0 lg:left-auto">
+                    <div className="p-2">
+                      {categories.map((category) => {
+                        const Icon = category.icon;
+                        return (
+                          <button
+                            key={category.id}
+                            onClick={() => {
+                              setSelectedCategory(category.id);
+                              setShowCategoryDropdown(false);
+                            }}
+                            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                              selectedCategory === category.id
+                                ? 'bg-purple-50 text-purple-700'
+                                : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span>{category.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
           </div>
