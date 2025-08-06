@@ -1,10 +1,13 @@
 const { pool, initDatabase, addSampleData } = require('../lib/db.js');
 
-// Initialize database
-initDatabase();
-
-// Add sample data for testing (only if database is empty)
-addSampleData();
+// Initialize database with error handling
+try {
+  initDatabase();
+  // Add sample data for testing (only if database is empty)
+  addSampleData();
+} catch (error) {
+  console.error('Database initialization error:', error);
+}
 
 module.exports = async (req, res) => {
   // Enable CORS
@@ -26,6 +29,11 @@ module.exports = async (req, res) => {
       // Get admin stats
       try {
         console.log('Fetching admin stats...');
+        
+        // Check if database is connected
+        if (!pool) {
+          throw new Error('Database connection not available');
+        }
         
         const usersResult = await pool.query('SELECT COUNT(*) as total_users FROM users');
         const totalUsers = parseInt(usersResult.rows[0].total_users);
@@ -102,16 +110,43 @@ module.exports = async (req, res) => {
         });
       } catch (error) {
         console.error('Error fetching admin stats:', error);
-        res.status(500).json({ 
-          success: false, 
-          message: 'Failed to fetch admin stats.',
-          error: error.message
-        });
+        
+        // Return fallback data if database is not available
+        if (error.message.includes('Database connection') || error.message.includes('DATABASE_URL')) {
+          res.json({
+            success: true,
+            stats: {
+              totalUsers: 0,
+              totalBlogs: 0,
+              totalLikes: 0,
+              totalComments: 0,
+              totalViews: 0,
+              bannedUsers: 0,
+              recentPosts: 0,
+              recentUsers: 0
+            },
+            dailyPosts: [],
+            userSignups: [],
+            message: 'Using fallback data - database not configured'
+          });
+        } else {
+          res.status(500).json({ 
+            success: false, 
+            message: 'Failed to fetch admin stats. Database connection issue.',
+            error: error.message
+          });
+        }
       }
     } else if (action === 'users') {
       // Get users
       try {
         console.log('Fetching users...');
+        
+        // Check if database is connected
+        if (!pool) {
+          throw new Error('Database connection not available');
+        }
+        
         const { page = 1, limit = 50 } = req.query;
         const offset = (page - 1) * limit;
         
@@ -146,16 +181,39 @@ module.exports = async (req, res) => {
         });
       } catch (error) {
         console.error('Error fetching users:', error);
-        res.status(500).json({ 
-          success: false, 
-          message: 'Failed to fetch users.',
-          error: error.message
-        });
+        
+        // Return fallback data if database is not available
+        if (error.message.includes('Database connection') || error.message.includes('DATABASE_URL')) {
+          res.json({
+            success: true,
+            users: [],
+            pagination: {
+              currentPage: 1,
+              totalPages: 0,
+              totalUsers: 0,
+              hasNext: false,
+              hasPrev: false
+            },
+            message: 'Using fallback data - database not configured'
+          });
+        } else {
+          res.status(500).json({ 
+            success: false, 
+            message: 'Failed to fetch users.',
+            error: error.message
+          });
+        }
       }
     } else if (action === 'blogs') {
       // Get blogs
       try {
         console.log('Fetching blogs...');
+        
+        // Check if database is connected
+        if (!pool) {
+          throw new Error('Database connection not available');
+        }
+        
         const { page = 1, limit = 50 } = req.query;
         const offset = (page - 1) * limit;
         
@@ -207,16 +265,41 @@ module.exports = async (req, res) => {
         });
       } catch (error) {
         console.error('Error fetching blogs:', error);
-        res.status(500).json({ 
-          success: false, 
-          message: 'Failed to fetch blogs.',
-          error: error.message
-        });
+        
+        // Return fallback data if database is not available
+        if (error.message.includes('Database connection') || error.message.includes('DATABASE_URL')) {
+          res.json({
+            success: true,
+            blogs: [],
+            pagination: {
+              currentPage: 1,
+              totalPages: 0,
+              totalBlogs: 0,
+              hasNext: false,
+              hasPrev: false
+            },
+            message: 'Using fallback data - database not configured'
+          });
+        } else {
+          res.status(500).json({ 
+            success: false, 
+            message: 'Failed to fetch blogs.',
+            error: error.message
+          });
+        }
       }
+    } else if (action === 'test') {
+      // Simple test endpoint
+      res.json({
+        success: true,
+        message: 'Admin API is working',
+        timestamp: new Date().toISOString(),
+        databaseUrl: process.env.DATABASE_URL ? 'Configured' : 'Not configured'
+      });
     } else {
       return res.status(400).json({ 
         success: false, 
-        message: 'Invalid action. Use stats, users, or blogs' 
+        message: 'Invalid action. Use stats, users, blogs, or test' 
       });
     }
   }
