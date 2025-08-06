@@ -51,12 +51,13 @@ const Signup = () => {
 
     try {
       // Send OTP to email with user data
-      const response = await fetch(config.API_ENDPOINTS.SIGNUP, {
+      const response = await fetch(config.API_ENDPOINTS.AUTH, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
+          action: 'send-otp',
           email: formData.email,
           fullName: formData.fullName,
           password: formData.password

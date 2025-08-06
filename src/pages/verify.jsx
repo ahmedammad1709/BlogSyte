@@ -73,12 +73,13 @@ const Verify = () => {
     setError('');
 
     try {
-      const response = await fetch(config.API_ENDPOINTS.VERIFY_OTP, {
+      const response = await fetch(config.API_ENDPOINTS.AUTH, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
+          action: 'verify-otp',
           email: email,
           otp: otpString 
         }),
@@ -117,12 +118,15 @@ const Verify = () => {
     setError('');
 
     try {
-      const response = await fetch(config.API_ENDPOINTS.SIGNUP, {
+      const response = await fetch(config.API_ENDPOINTS.AUTH, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: email }),
+        body: JSON.stringify({ 
+          action: 'send-otp',
+          email: email 
+        }),
       });
 
       const data = await response.json();

@@ -13,9 +13,7 @@ console.log('API Configuration:', {
 export const config = {
   API_BASE_URL,
   API_ENDPOINTS: {
-    LOGIN: `${API_BASE_URL}/api/login`,
-    SIGNUP: `${API_BASE_URL}/api/send-otp`,
-    VERIFY_OTP: `${API_BASE_URL}/api/verify-otp`,
+    AUTH: `${API_BASE_URL}/api/auth`,
     BLOG_POSTS: `${API_BASE_URL}/api/blog-posts`,
     CREATE_BLOG: `${API_BASE_URL}/api/blog-posts`,
     USER_DASHBOARD: `${API_BASE_URL}/api/user/dashboard`,
