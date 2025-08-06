@@ -168,11 +168,12 @@ const Admin = () => {
   // Ban user
   const handleBanUser = async (userId) => {
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.ADMIN_BAN_USER}/${userId}/ban`, {
+      const response = await fetch(`${config.API_ENDPOINTS.ADMIN_BAN_USER}/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ action: 'ban' }),
       });
 
       const data = await response.json();
@@ -193,11 +194,12 @@ const Admin = () => {
   // Unban user
   const handleUnbanUser = async (userId) => {
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.ADMIN_UNBAN_USER}/${userId}/unban`, {
+      const response = await fetch(`${config.API_ENDPOINTS.ADMIN_UNBAN_USER}/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ action: 'unban' }),
       });
 
       const data = await response.json();
@@ -226,6 +228,9 @@ const Admin = () => {
       try {
         const response = await fetch(`${config.API_ENDPOINTS.ADMIN_DELETE_BLOG}/${blogToDelete.id}`, {
           method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
         });
 
         const data = await response.json();

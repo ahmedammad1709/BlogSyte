@@ -1,4 +1,4 @@
-const { pool, initDatabase } = require('../../lib/db.js');
+const { pool, initDatabase } = require('../../lib/mockDb.js');
 
 // Initialize database
 initDatabase();
@@ -26,7 +26,7 @@ module.exports = async (req, res) => {
         const totalUsers = parseInt(usersResult.rows[0].total_users);
 
         const postsResult = await pool.query('SELECT COUNT(*) as total_posts FROM blog_posts');
-        const totalPosts = parseInt(postsResult.rows[0].total_posts);
+        const totalBlogs = parseInt(postsResult.rows[0].total_posts);
 
         const likesResult = await pool.query('SELECT COUNT(*) as total_likes FROM likes');
         const totalLikes = parseInt(likesResult.rows[0].total_likes);
@@ -54,18 +54,42 @@ module.exports = async (req, res) => {
         `);
         const recentUsers = parseInt(recentUsersResult.rows[0].recent_users);
 
+        // Get daily posts for the last 7 days
+        const dailyPostsResult = await pool.query(`
+          SELECT 
+            DATE(created_at) as date,
+            COUNT(*) as count
+          FROM blog_posts 
+          WHERE created_at >= NOW() - INTERVAL '7 days'
+          GROUP BY DATE(created_at)
+          ORDER BY date
+        `);
+
+        // Get user signups for the last 30 days
+        const userSignupsResult = await pool.query(`
+          SELECT 
+            DATE(created_at) as date,
+            COUNT(*) as count
+          FROM users 
+          WHERE created_at >= NOW() - INTERVAL '30 days'
+          GROUP BY DATE(created_at)
+          ORDER BY date
+        `);
+
         res.json({
           success: true,
           stats: {
             totalUsers,
-            totalPosts,
+            totalBlogs,
             totalLikes,
             totalComments,
             totalViews,
             bannedUsers,
             recentPosts,
             recentUsers
-          }
+          },
+          dailyPosts: dailyPostsResult.rows,
+          userSignups: userSignupsResult.rows
         });
       } catch (error) {
         console.error('Error fetching admin stats:', error);
@@ -77,7 +101,7 @@ module.exports = async (req, res) => {
     } else if (action === 'users') {
       // Get users
       try {
-        const { page = 1, limit = 10 } = req.query;
+        const { page = 1, limit = 50 } = req.query;
         const offset = (page - 1) * limit;
         
         const query = `
@@ -117,7 +141,7 @@ module.exports = async (req, res) => {
     } else if (action === 'blogs') {
       // Get blogs
       try {
-        const { page = 1, limit = 10 } = req.query;
+        const { page = 1, limit = 50 } = req.query;
         const offset = (page - 1) * limit;
         
         const query = `
