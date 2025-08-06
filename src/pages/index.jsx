@@ -230,13 +230,13 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-gray-50 dark:bg-gray-800">
+      <section id="features" className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-purple-600 dark:from-white dark:to-purple-400 bg-clip-text text-transparent">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-purple-600 bg-clip-text text-transparent">
               Why Choose BlogSyte?
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Experience the next generation of blogging with cutting-edge features designed for modern creators.
             </p>
           </div>
@@ -245,7 +245,7 @@ export default function HomePage() {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className={`group bg-white dark:bg-gray-700 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100 dark:border-gray-600`}
+                className={`group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100`}
                 style={{
                   animationDelay: `${index * 200}ms`
                 }}
@@ -255,10 +255,10 @@ export default function HomePage() {
                     {feature.icon}
                   </div>
                 </div>
-                <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+                <h3 className="text-xl font-bold mb-4 text-gray-900">
                   {feature.title}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                <p className="text-gray-600 leading-relaxed">
                   {feature.description}
                 </p>
               </div>
@@ -271,10 +271,10 @@ export default function HomePage() {
       <section id="blogs" className="py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-purple-600 dark:from-white dark:to-purple-400 bg-clip-text text-transparent">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-purple-600 bg-clip-text text-transparent">
               Featured Stories
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Discover compelling stories from our community of talented writers and creators.
             </p>
           </div>
@@ -310,56 +310,56 @@ export default function HomePage() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-20 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-800 dark:to-gray-900">
+      <section id="contact" className="py-20 bg-gradient-to-br from-purple-50 to-pink-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-purple-600 dark:from-white dark:to-purple-400 bg-clip-text text-transparent">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-purple-600 bg-clip-text text-transparent">
               Get In Touch
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Have questions or want to collaborate? We'd love to hear from you!
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Contact Form */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl">
+            <div className="bg-white rounded-2xl p-8 shadow-xl">
               <form onSubmit={handleContactSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 
                     Name
                   </label>
                   <input
                     type="text"
                     value={contactForm.name}
                     onChange={(e) => setContactForm({...contactForm, name: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-300"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
                     placeholder="Your name"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Email
                   </label>
                   <input
                     type="email"
                     value={contactForm.email}
                     onChange={(e) => setContactForm({...contactForm, email: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-300"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
                     placeholder="your@email.com"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Message
                   </label>
                   <textarea
                     value={contactForm.message}
                     onChange={(e) => setContactForm({...contactForm, message: e.target.value})}
                     rows={4}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-300"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
                     placeholder="Tell us what's on your mind..."
                     required
                   />
@@ -377,8 +377,8 @@ export default function HomePage() {
 
             {/* Contact Info */}
             <div className="space-y-8">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl">
-                <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
+              <div className="bg-white rounded-2xl p-8 shadow-xl">
+                <h3 className="text-2xl font-bold mb-6 text-gray-900">
                   Let's Connect
                 </h3>
                 <div className="space-y-4">
@@ -387,8 +387,8 @@ export default function HomePage() {
                       <Mail className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">Email</p>
-                      <p className="text-gray-600 dark:text-gray-300">hello@blogsyte.com</p>
+                      <p className="font-medium text-gray-900">Email</p>
+                      <p className="text-gray-600">hello@blogsyte.com</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
@@ -396,8 +396,8 @@ export default function HomePage() {
                       <Phone className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">Phone</p>
-                      <p className="text-gray-600 dark:text-gray-300">+1 (555) 123-4567</p>
+                      <p className="font-medium text-gray-900">Phone</p>
+                      <p className="text-gray-600">+1 (555) 123-4567</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
@@ -405,8 +405,8 @@ export default function HomePage() {
                       <MapPin className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">Location</p>
-                      <p className="text-gray-600 dark:text-gray-300">San Francisco, CA</p>
+                      <p className="font-medium text-gray-900">Location</p>
+                      <p className="text-gray-600">San Francisco, CA</p>
                     </div>
                   </div>
                 </div>
@@ -417,7 +417,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 dark:bg-black text-white py-16">
+      <footer className="bg-gray-900 text-white py-16">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {/* Brand */}
