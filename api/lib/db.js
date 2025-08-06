@@ -169,9 +169,131 @@ const getUserDashboardStats = async (userId) => {
   }
 };
 
+// Add sample data for testing
+const addSampleData = async () => {
+  try {
+    console.log('Adding sample data...');
+    
+    // Check if sample data already exists
+    const userCount = await pool.query('SELECT COUNT(*) as count FROM users');
+    if (parseInt(userCount.rows[0].count) > 0) {
+      console.log('Sample data already exists, skipping...');
+      return;
+    }
+
+    // Add sample users
+    const users = [
+      { name: 'John Doe', email: 'john@example.com', password: '$2a$10$example', is_admin: false },
+      { name: 'Jane Smith', email: 'jane@example.com', password: '$2a$10$example', is_admin: false },
+      { name: 'Bob Johnson', email: 'bob@example.com', password: '$2a$10$example', is_admin: false },
+      { name: 'Admin User', email: 'admin@bloghive.com', password: '$2a$10$example', is_admin: true }
+    ];
+
+    for (const user of users) {
+      await pool.query(
+        'INSERT INTO users (name, email, password, is_admin) VALUES ($1, $2, $3, $4)',
+        [user.name, user.email, user.password, user.is_admin]
+      );
+    }
+
+    // Get user IDs
+    const userResult = await pool.query('SELECT id, name FROM users');
+    const usersMap = {};
+    userResult.rows.forEach(user => {
+      usersMap[user.name] = user.id;
+    });
+
+    // Add sample blog posts
+    const blogs = [
+      {
+        title: 'Getting Started with React',
+        description: 'A comprehensive guide to React development for beginners...',
+        category: 'Technology',
+        author_id: usersMap['John Doe'],
+        author_name: 'John Doe'
+      },
+      {
+        title: 'Modern CSS Techniques',
+        description: 'Exploring advanced CSS features and best practices...',
+        category: 'Design',
+        author_id: usersMap['Jane Smith'],
+        author_name: 'Jane Smith'
+      },
+      {
+        title: 'JavaScript Best Practices',
+        description: 'Essential JavaScript patterns and practices for better code...',
+        category: 'Programming',
+        author_id: usersMap['John Doe'],
+        author_name: 'John Doe'
+      },
+      {
+        title: 'Web Development Trends 2024',
+        description: 'Latest trends and technologies in web development...',
+        category: 'Technology',
+        author_id: usersMap['Bob Johnson'],
+        author_name: 'Bob Johnson'
+      }
+    ];
+
+    for (const blog of blogs) {
+      await pool.query(
+        'INSERT INTO blog_posts (title, description, category, author_id, author_name) VALUES ($1, $2, $3, $4, $5)',
+        [blog.title, blog.description, blog.category, blog.author_id, blog.author_name]
+      );
+    }
+
+    // Get blog IDs
+    const blogResult = await pool.query('SELECT id FROM blog_posts');
+    const blogIds = blogResult.rows.map(row => row.id);
+
+    // Add sample likes
+    for (let i = 0; i < 15; i++) {
+      const randomBlogId = blogIds[Math.floor(Math.random() * blogIds.length)];
+      const randomUserId = Object.values(usersMap)[Math.floor(Math.random() * Object.values(usersMap).length)];
+      await pool.query(
+        'INSERT INTO likes (blog_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [randomBlogId, randomUserId]
+      );
+    }
+
+    // Add sample comments
+    const comments = [
+      'Great article! Very helpful.',
+      'Thanks for sharing this information.',
+      'I learned a lot from this post.',
+      'Excellent explanation!',
+      'This is exactly what I was looking for.'
+    ];
+
+    for (let i = 0; i < 10; i++) {
+      const randomBlogId = blogIds[Math.floor(Math.random() * blogIds.length)];
+      const randomUserId = Object.values(usersMap)[Math.floor(Math.random() * Object.values(usersMap).length)];
+      const randomComment = comments[Math.floor(Math.random() * comments.length)];
+      await pool.query(
+        'INSERT INTO comments (blog_id, user_id, comment_text) VALUES ($1, $2, $3)',
+        [randomBlogId, randomUserId, randomComment]
+      );
+    }
+
+    // Add sample views
+    for (let i = 0; i < 50; i++) {
+      const randomBlogId = blogIds[Math.floor(Math.random() * blogIds.length)];
+      await pool.query(
+        'INSERT INTO views (blog_id, user_ip) VALUES ($1, $2)',
+        [randomBlogId, `192.168.1.${Math.floor(Math.random() * 255)}`]
+      );
+    }
+
+    console.log('Sample data added successfully!');
+  } catch (error) {
+    console.error('Error adding sample data:', error);
+  }
+};
+
 module.exports = { 
   pool, 
   initDatabase, 
   getBlogStats, 
-  getUserDashboardStats 
+  getUserDashboardStats,
+  addSampleData
 }; 

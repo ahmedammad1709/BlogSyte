@@ -1,7 +1,10 @@
-const { pool, initDatabase } = require('../lib/db.js');
+const { pool, initDatabase, addSampleData } = require('../lib/db.js');
 
 // Initialize database
 initDatabase();
+
+// Add sample data for testing (only if database is empty)
+addSampleData();
 
 module.exports = async (req, res) => {
   // Enable CORS
@@ -22,6 +25,8 @@ module.exports = async (req, res) => {
     if (action === 'stats') {
       // Get admin stats
       try {
+        console.log('Fetching admin stats...');
+        
         const usersResult = await pool.query('SELECT COUNT(*) as total_users FROM users');
         const totalUsers = parseInt(usersResult.rows[0].total_users);
 
@@ -76,18 +81,22 @@ module.exports = async (req, res) => {
           ORDER BY date
         `);
 
+        const stats = {
+          totalUsers,
+          totalBlogs,
+          totalLikes,
+          totalComments,
+          totalViews,
+          bannedUsers,
+          recentPosts,
+          recentUsers
+        };
+
+        console.log('Admin stats calculated:', stats);
+
         res.json({
           success: true,
-          stats: {
-            totalUsers,
-            totalBlogs,
-            totalLikes,
-            totalComments,
-            totalViews,
-            bannedUsers,
-            recentPosts,
-            recentUsers
-          },
+          stats,
           dailyPosts: dailyPostsResult.rows,
           userSignups: userSignupsResult.rows
         });
@@ -95,12 +104,14 @@ module.exports = async (req, res) => {
         console.error('Error fetching admin stats:', error);
         res.status(500).json({ 
           success: false, 
-          message: 'Failed to fetch admin stats.' 
+          message: 'Failed to fetch admin stats.',
+          error: error.message
         });
       }
     } else if (action === 'users') {
       // Get users
       try {
+        console.log('Fetching users...');
         const { page = 1, limit = 50 } = req.query;
         const offset = (page - 1) * limit;
         
@@ -120,6 +131,8 @@ module.exports = async (req, res) => {
         const countResult = await pool.query('SELECT COUNT(*) as total FROM users');
         const totalUsers = parseInt(countResult.rows[0].total);
         
+        console.log(`Found ${result.rows.length} users`);
+        
         res.json({
           success: true,
           users: result.rows,
@@ -135,12 +148,14 @@ module.exports = async (req, res) => {
         console.error('Error fetching users:', error);
         res.status(500).json({ 
           success: false, 
-          message: 'Failed to fetch users.' 
+          message: 'Failed to fetch users.',
+          error: error.message
         });
       }
     } else if (action === 'blogs') {
       // Get blogs
       try {
+        console.log('Fetching blogs...');
         const { page = 1, limit = 50 } = req.query;
         const offset = (page - 1) * limit;
         
@@ -177,6 +192,8 @@ module.exports = async (req, res) => {
         const countResult = await pool.query('SELECT COUNT(*) as total FROM blog_posts');
         const totalBlogs = parseInt(countResult.rows[0].total);
         
+        console.log(`Found ${result.rows.length} blogs`);
+        
         res.json({
           success: true,
           blogs: blogsWithStats,
@@ -192,7 +209,8 @@ module.exports = async (req, res) => {
         console.error('Error fetching blogs:', error);
         res.status(500).json({ 
           success: false, 
-          message: 'Failed to fetch blogs.' 
+          message: 'Failed to fetch blogs.',
+          error: error.message
         });
       }
     } else {
