@@ -149,7 +149,7 @@ const Verify = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-purple-50 via-white to-pink-50 
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-purple-50 via-white to-pink-50">
       <AnimatedBackground />
       
       <div className="relative z-10 w-full max-w-md mx-auto px-4">
@@ -164,7 +164,7 @@ const Verify = () => {
             <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-gray-900 via-purple-800 to-violet-900 bg-clip-text text-transparent">
               Verify Your Email
             </h1>
-            <p className="text-lg text-gray-600 
+            <p className="text-lg text-gray-600">
               We've sent a 6-digit OTP to <span className="font-semibold text-purple-600">{email}</span>
             </p>
           </div>
@@ -186,10 +186,10 @@ const Verify = () => {
           )}
 
           {/* Form Card */}
-          <div className="bg-white/80 shadow-2xl border border-white/20 shadow-3xl transition-all duration-500">
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-500">
             {/* OTP Input */}
             <div className="mb-8">
-              <label className="block text-sm font-semibold text-gray-700 
+              <label className="block text-sm font-semibold text-gray-700 mb-4">
                 Enter 6-digit OTP
               </label>
               <div className="flex justify-center space-x-3">
@@ -202,7 +202,7 @@ const Verify = () => {
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
-                    className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 s:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 sition-all duration-300"
+                    className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 transition-all duration-300"
                     placeholder="0"
                   />
                 ))}
@@ -211,7 +211,7 @@ const Verify = () => {
 
             {/* Timer */}
             <div className="text-center mb-6">
-              <p className="text-sm text-gray-600 
+              <p className="text-sm text-gray-600">
                 OTP expires in: <span className="font-semibold text-purple-600">{formatTime(countdown)}</span>
               </p>
             </div>
@@ -239,7 +239,7 @@ const Verify = () => {
 
             {/* Resend OTP */}
             <div className="text-center">
-              <p className="text-sm text-gray-600 
+              <p className="text-sm text-gray-600">
                 Didn't receive the OTP?
               </p>
               <Button

@@ -326,7 +326,7 @@ export default function HomePage() {
             <div className="bg-white rounded-2xl p-8 shadow-xl">
               <form onSubmit={handleContactSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Name
                   </label>
                   <input

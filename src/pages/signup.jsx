@@ -105,7 +105,7 @@ const Signup = () => {
   const passwordStrength = getPasswordStrength(formData.password);
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-purple-50 via-white to-pink-50 
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-purple-50 via-white to-pink-50">
       <AnimatedBackground />
       
       <div className="relative z-10 w-full max-w-lg mx-auto px-4">
@@ -120,17 +120,17 @@ const Signup = () => {
             <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-gray-900 via-purple-800 to-violet-900 bg-clip-text text-transparent">
               Join BlogSyte
             </h1>
-            <p className="text-lg text-gray-600 
+            <p className="text-lg text-gray-600">
               Create your account and start sharing your ideas
             </p>
           </div>
 
           {/* Form Card */}
-          <div className="bg-white/80 shadow-2xl border border-white/20 shadow-3xl transition-all duration-500">
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-500">
             <form className="space-y-6" onSubmit={handleSubmit}>
               {/* Full Name Field */}
               <div className="space-y-2">
-                <label htmlFor="fullName" className="block text-sm font-semibold text-gray-700 
+                <label htmlFor="fullName" className="block text-sm font-semibold text-gray-700">
                   Full Name
                 </label>
                 <div className="relative group">
@@ -142,7 +142,7 @@ const Signup = () => {
                     required
                     value={formData.fullName}
                     onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-4 bg-white/50 s:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 sm"
+                    className="w-full pl-12 pr-4 py-4 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 backdrop-blur-sm"
                     placeholder="Enter your full name"
                   />
                 </div>
@@ -150,7 +150,7 @@ const Signup = () => {
 
               {/* Email Field */}
               <div className="space-y-2">
-                <label htmlFor="email" className="block text-sm font-semibold text-gray-700 
+                <label htmlFor="email" className="block text-sm font-semibold text-gray-700">
                   Email Address
                 </label>
                 <div className="relative group">
@@ -162,7 +162,7 @@ const Signup = () => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-4 bg-white/50 s:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 sm"
+                    className="w-full pl-12 pr-4 py-4 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 backdrop-blur-sm"
                     placeholder="Enter your email"
                   />
                 </div>
@@ -170,7 +170,7 @@ const Signup = () => {
 
               {/* Password Field */}
               <div className="space-y-2">
-                <label htmlFor="password" className="block text-sm font-semibold text-gray-700 
+                <label htmlFor="password" className="block text-sm font-semibold text-gray-700">
                   Password
                 </label>
                 <div className="relative group">
@@ -182,7 +182,7 @@ const Signup = () => {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full pl-12 pr-12 py-4 bg-white/50 s:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 sm"
+                    className="w-full pl-12 pr-12 py-4 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 backdrop-blur-sm"
                     placeholder="Create a strong password"
                   />
                   <button
@@ -202,12 +202,12 @@ const Signup = () => {
                         <div
                           key={level}
                           className={`h-2 flex-1 rounded-full transition-all duration-300 ${
-                            level <= passwordStrength.strength ? passwordStrength.color : 'bg-gray-200 
+                            level <= passwordStrength.strength ? passwordStrength.color : 'bg-gray-200'
                           }`}
                         />
                       ))}
                     </div>
-                    <p className="text-xs text-gray-500 
+                    <p className="text-xs text-gray-500">
                       Password strength: {passwordStrength.strength}/5
                     </p>
                   </div>
@@ -216,7 +216,7 @@ const Signup = () => {
 
               {/* Confirm Password Field */}
               <div className="space-y-2">
-                <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700 
+                <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700">
                   Confirm Password
                 </label>
                 <div className="relative group">
@@ -228,7 +228,7 @@ const Signup = () => {
                     required
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className="w-full pl-12 pr-12 py-4 bg-white/50 s:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 sm"
+                    className="w-full pl-12 pr-12 py-4 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 backdrop-blur-sm"
                     placeholder="Confirm your password"
                   />
                   <button
@@ -264,7 +264,7 @@ const Signup = () => {
                   required
                   className="h-4 w-4 mt-1 text-purple-600 focus:ring-purple-500 border-gray-300 rounded transition-all duration-300"
                 />
-                <label htmlFor="agree-terms" className="text-sm text-gray-700 
+                <label htmlFor="agree-terms" className="text-sm text-gray-700">
                   I agree to the{' '}
                   <Link to="/terms" className="font-medium text-purple-600 hover:text-purple-500 transition-colors duration-300">
                     Terms of Service
@@ -307,10 +307,10 @@ const Signup = () => {
               {/* Divider */}
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300 
+                  <div className="w-full border-t border-gray-300"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white/80 span>
+                  <span className="px-2 bg-white/80 text-gray-500">Or continue with</span>
                 </div>
               </div>
 
@@ -318,7 +318,7 @@ const Signup = () => {
               <div className="grid grid-cols-2 gap-4">
                 <button
                   type="button"
-                  className="flex items-center justify-center px-4 py-3 border border-gray-300 sition-all duration-300 group"
+                  className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-xl bg-white/50 hover:bg-white/80 transition-all duration-300 group"
                 >
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                     <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -326,18 +326,18 @@ const Signup = () => {
                     <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                     <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                   </svg>
-                  <span className="text-gray-700 sition-colors duration-300">
+                  <span className="text-gray-700 group-hover:text-gray-900 transition-colors duration-300">
                     Google
                   </span>
                 </button>
                 <button
                   type="button"
-                  className="flex items-center justify-center px-4 py-3 border border-gray-300 sition-all duration-300 group"
+                  className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-xl bg-white/50 hover:bg-white/80 transition-all duration-300 group"
                 >
                   <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
                   </svg>
-                  <span className="text-gray-700 sition-colors duration-300">
+                  <span className="text-gray-700 group-hover:text-gray-900 transition-colors duration-300">
                     Twitter
                   </span>
                 </button>
@@ -345,7 +345,7 @@ const Signup = () => {
 
               {/* Sign In Link */}
               <div className="text-center">
-                <p className="text-gray-600 
+                <p className="text-gray-600">
                   Already have an account?{' '}
                   <Link 
                     to="/login" 
