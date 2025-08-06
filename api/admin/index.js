@@ -1,4 +1,4 @@
-const { pool, initDatabase } = require('../../lib/mockDb.js');
+const { pool, initDatabase } = require('../lib/db.js');
 
 // Initialize database
 initDatabase();
