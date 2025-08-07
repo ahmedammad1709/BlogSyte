@@ -475,27 +475,44 @@ async function handleDeleteAccount(req, res, userId, password) {
       });
     }
 
+    // Check if user has any data that might cause issues
+    const userDataCheck = await pool.query(`
+      SELECT 
+        (SELECT COUNT(*) FROM blog_posts WHERE author_id = $1) as blog_count,
+        (SELECT COUNT(*) FROM likes WHERE user_id = $1) as likes_count,
+        (SELECT COUNT(*) FROM comments WHERE user_id = $1) as comments_count
+    `, [userId]);
+    
+    console.log('User data check:', userDataCheck.rows[0]);
+
     console.log('Starting account deletion process...');
     
-    // Delete user's blog posts first (due to foreign key constraints)
-    const blogPostsResult = await pool.query('DELETE FROM blog_posts WHERE author_id = $1', [userId]);
-    console.log('Deleted blog posts:', blogPostsResult.rowCount);
-
-    // Delete user's likes
-    const likesResult = await pool.query('DELETE FROM likes WHERE user_id = $1', [userId]);
-    console.log('Deleted likes:', likesResult.rowCount);
-
-    // Delete user's comments
-    const commentsResult = await pool.query('DELETE FROM comments WHERE user_id = $1', [userId]);
-    console.log('Deleted comments:', commentsResult.rowCount);
-
-    // Delete user's views (if any user-specific views exist)
-    const viewsResult = await pool.query('DELETE FROM views WHERE user_ip IN (SELECT DISTINCT user_ip FROM views WHERE blog_id IN (SELECT id FROM blog_posts WHERE author_id = $1))', [userId]);
-    console.log('Deleted views:', viewsResult.rowCount);
-
-    // Finally delete the user
-    const deleteUserResult = await pool.query('DELETE FROM users WHERE id = $1', [userId]);
-    console.log('Deleted user:', deleteUserResult.rowCount);
+    try {
+      // Use a transaction to ensure data consistency
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        
+        // Since we have CASCADE constraints, we can directly delete the user
+        // All related data (blog posts, likes, comments, views) will be automatically deleted
+        const deleteUserResult = await client.query('DELETE FROM users WHERE id = $1', [userId]);
+        console.log('Deleted user:', deleteUserResult.rowCount);
+        
+        if (deleteUserResult.rowCount === 0) {
+          throw new Error('User was not deleted - no rows affected');
+        }
+        
+        await client.query('COMMIT');
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+    } catch (dbError) {
+      console.error('Database deletion error:', dbError);
+      throw new Error(`Database error during deletion: ${dbError.message}`);
+    }
 
     console.log('Account deletion completed successfully');
     return res.status(200).json({
@@ -505,9 +522,14 @@ async function handleDeleteAccount(req, res, userId, password) {
 
   } catch (error) {
     console.error('Delete account error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
     return res.status(500).json({
       success: false,
-      message: 'Failed to delete account. Please try again.'
+      message: `Failed to delete account: ${error.message}`
     });
   }
 }
