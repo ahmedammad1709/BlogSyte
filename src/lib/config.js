@@ -29,7 +29,7 @@ export const config = {
     USER_READ_NOTIFICATION: `${API_BASE_URL}/api/user/notifications`,
     BLOG_POSTS_BY_AUTHOR: `${API_BASE_URL}/api/blog-posts/author`,
     USER_UPDATE: `${API_BASE_URL}/api/users`,
-    USER_DELETE_ACCOUNT: `${API_BASE_URL}/api/user/delete-account`,
+    USER_DELETE_ACCOUNT: `${API_BASE_URL}/api/auth`,
     BLOG_LIKE_STATUS: `${API_BASE_URL}/api/blogs`,
     BLOG_LIKE: `${API_BASE_URL}/api/blogs`,
     BLOG_VIEW: `${API_BASE_URL}/api/blogs`,

@@ -32,8 +32,8 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // Only allow POST requests
-  if (req.method !== 'POST') {
+  // Allow POST and DELETE requests
+  if (req.method !== 'POST' && req.method !== 'DELETE') {
     return res.status(405).json({ 
       success: false, 
       message: 'Method not allowed' 
@@ -41,41 +41,57 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { action, email, password, fullName, otp } = req.body;
+    if (req.method === 'POST') {
+      const { action, email, password, fullName, otp } = req.body;
+      
+      if (!action) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Action is required (login, send-otp, verify-otp)' 
+        });
+      }
+
+      switch (action) {
+        case 'login':
+          return await handleLogin(req, res, email, password);
+        
+        case 'send-otp':
+          return await handleSendOTP(req, res, email, fullName, password);
+        
+        case 'verify-otp':
+          return await handleVerifyOTP(req, res, email, otp);
+        
+        case 'forgot-password-send-otp':
+          return await handleForgotPasswordSendOTP(req, res, email);
+        
+        case 'forgot-password-verify-otp':
+          return await handleForgotPasswordVerifyOTP(req, res, email, otp);
+        
+        case 'forgot-password-reset':
+          return await handleForgotPasswordReset(req, res, email, otp, req.body.newPassword);
+        
+        default:
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Invalid action. Use: login, send-otp, verify-otp, forgot-password-send-otp, forgot-password-verify-otp, or forgot-password-reset' 
+          });
+      }
+      } else if (req.method === 'DELETE') {
+    // Handle delete account request
+    console.log('DELETE request received for account deletion');
+    const { userId, password } = req.body;
+    console.log('Request body:', { userId, password: password ? '[HIDDEN]' : 'undefined' });
     
-    if (!action) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Action is required (login, send-otp, verify-otp)' 
+    if (!userId || !password) {
+      console.log('Missing required fields');
+      return res.status(400).json({
+        success: false,
+        message: 'User ID and password are required'
       });
     }
 
-    switch (action) {
-      case 'login':
-        return await handleLogin(req, res, email, password);
-      
-      case 'send-otp':
-        return await handleSendOTP(req, res, email, fullName, password);
-      
-      case 'verify-otp':
-        return await handleVerifyOTP(req, res, email, otp);
-      
-      case 'forgot-password-send-otp':
-        return await handleForgotPasswordSendOTP(req, res, email);
-      
-      case 'forgot-password-verify-otp':
-        return await handleForgotPasswordVerifyOTP(req, res, email, otp);
-      
-      case 'forgot-password-reset':
-        return await handleForgotPasswordReset(req, res, email, otp, req.body.newPassword);
-      
-      default:
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Invalid action. Use: login, send-otp, verify-otp, forgot-password-send-otp, forgot-password-verify-otp, or forgot-password-reset' 
-        });
-    }
-
+    return await handleDeleteAccount(req, res, userId, password);
+  }
   } catch (error) {
     console.error('Auth error:', error);
     res.status(500).json({ 
@@ -423,6 +439,75 @@ async function handleForgotPasswordReset(req, res, email, otp, newPassword) {
     res.status(500).json({ 
       success: false, 
       message: 'Failed to reset password. Please try again.' 
+    });
+  }
+}
+
+async function handleDeleteAccount(req, res, userId, password) {
+  try {
+    console.log('handleDeleteAccount called with userId:', userId);
+    
+    // Get user from database
+    const userQuery = 'SELECT id, name, email, password FROM users WHERE id = $1';
+    const userResult = await pool.query(userQuery, [userId]);
+    console.log('User query result:', userResult.rows.length > 0 ? 'User found' : 'User not found');
+
+    if (userResult.rows.length === 0) {
+      console.log('User not found in database');
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const user = userResult.rows[0];
+    console.log('User found:', { id: user.id, name: user.name, email: user.email });
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('Password validation result:', isPasswordValid);
+    
+    if (!isPasswordValid) {
+      console.log('Invalid password provided');
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid password'
+      });
+    }
+
+    console.log('Starting account deletion process...');
+    
+    // Delete user's blog posts first (due to foreign key constraints)
+    const blogPostsResult = await pool.query('DELETE FROM blog_posts WHERE author_id = $1', [userId]);
+    console.log('Deleted blog posts:', blogPostsResult.rowCount);
+
+    // Delete user's likes
+    const likesResult = await pool.query('DELETE FROM likes WHERE user_id = $1', [userId]);
+    console.log('Deleted likes:', likesResult.rowCount);
+
+    // Delete user's comments
+    const commentsResult = await pool.query('DELETE FROM comments WHERE user_id = $1', [userId]);
+    console.log('Deleted comments:', commentsResult.rowCount);
+
+    // Delete user's views (if any user-specific views exist)
+    const viewsResult = await pool.query('DELETE FROM views WHERE user_ip IN (SELECT DISTINCT user_ip FROM views WHERE blog_id IN (SELECT id FROM blog_posts WHERE author_id = $1))', [userId]);
+    console.log('Deleted views:', viewsResult.rowCount);
+
+    // Finally delete the user
+    const deleteUserResult = await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    console.log('Deleted user:', deleteUserResult.rowCount);
+
+    console.log('Account deletion completed successfully');
+    return res.status(200).json({
+      success: true,
+      message: 'Account deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Delete account error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete account. Please try again.'
     });
   }
 }

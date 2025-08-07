@@ -299,6 +299,9 @@ const Dashboard = () => {
   const deleteAccount = async (password) => {
     setDeleteAccountLoading(true);
     try {
+      console.log('Attempting to delete account for user:', user.id);
+      console.log('API endpoint:', config.API_ENDPOINTS.USER_DELETE_ACCOUNT);
+      
       const response = await fetch(config.API_ENDPOINTS.USER_DELETE_ACCOUNT, {
         method: 'DELETE',
         headers: {
@@ -310,7 +313,9 @@ const Dashboard = () => {
         }),
       });
 
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
       
       if (data.success) {
         logout();
