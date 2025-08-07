@@ -157,7 +157,6 @@ const Explore = () => {
         }
         
         setLikedPosts(newLikedPosts);
-        localStorage.setItem('likedPosts', JSON.stringify(Array.from(newLikedPosts)));
       };
       
       checkLikeStatus();
@@ -232,7 +231,7 @@ const Explore = () => {
 
     // Send API request to update likes in database
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.BLOG_LIKE}/${blogId}`, {
+      await fetch(`${config.API_ENDPOINTS.BLOG_LIKE}/${blogId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -242,22 +241,7 @@ const Explore = () => {
           userId: user.id
         })
       });
-      
-      const data = await response.json();
-      if (data.success && data.stats) {
-        // Update blogs array with new counts from server
-        setBlogs(prev => prev.map(blog => {
-          if (blog.id === blogId) {
-            return {
-              ...blog,
-              likes: data.stats.likes,
-              views: data.stats.views,
-              comments: data.stats.comments
-            };
-          }
-          return blog;
-        }));
-      }
+      fetchBlogs();
     } catch (error) {
       console.error('Error updating like:', error);
     }
@@ -279,7 +263,7 @@ const Explore = () => {
   const handleViewIncrement = async (blogId) => {
     // Send API request to update views in database
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.BLOG_VIEW}/${blogId}`, {
+      await fetch(`${config.API_ENDPOINTS.BLOG_VIEW}/${blogId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -290,22 +274,7 @@ const Explore = () => {
           userAgent: navigator.userAgent
         })
       });
-      
-      const data = await response.json();
-      if (data.success && data.stats) {
-        // Update blogs array with new counts from server
-        setBlogs(prev => prev.map(blog => {
-          if (blog.id === blogId) {
-            return {
-              ...blog,
-              likes: data.stats.likes,
-              views: data.stats.views,
-              comments: data.stats.comments
-            };
-          }
-          return blog;
-        }));
-      }
+      fetchBlogs();
     } catch (error) {
       console.error('Error updating view:', error);
     }
@@ -316,7 +285,7 @@ const Explore = () => {
     
     // Send API request to add comment to database
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.BLOG_COMMENT}/${blogId}`, {
+      await fetch(`${config.API_ENDPOINTS.BLOG_COMMENT}/${blogId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -327,44 +296,12 @@ const Explore = () => {
           commentText: commentText
         })
       });
-      
-      const data = await response.json();
-      if (data.success && data.comment) {
-        // Add comment to local state
-        const newComment = { 
-          id: data.comment.id, 
-          text: data.comment.comment_text, 
-          author: data.comment.author_name, 
-          date: new Date(data.comment.created_at).toLocaleDateString() 
-        };
-        
-        const updatedComments = {
-          ...comments,
-          [blogId]: [...(comments[blogId] || []), newComment]
-        };
-        setComments(updatedComments);
-
-        // Update blogs array with new counts from server
-        if (data.stats) {
-          setBlogs(prev => prev.map(blog => {
-            if (blog.id === blogId) {
-              return {
-                ...blog,
-                likes: data.stats.likes,
-                views: data.stats.views,
-                comments: data.stats.comments
-              };
-            }
-            return blog;
-          }));
-        }
-        
-        // Clear the comment text
-        setCommentTexts(prev => ({
-          ...prev,
-          [blogId]: ''
-        }));
-      }
+      fetchBlogs();
+      loadComments(blogId);
+      setCommentTexts(prev => ({
+        ...prev,
+        [blogId]: ''
+      }));
     } catch (error) {
       console.error('Error adding comment:', error);
     }
