@@ -229,10 +229,67 @@ module.exports = async (req, res) => {
           error: error.message
         });
       }
+    } else if (action === 'test') {
+      // Simple test endpoint
+      res.json({
+        success: true,
+        message: 'Admin API is working',
+        timestamp: new Date().toISOString(),
+        databaseUrl: process.env.DATABASE_URL ? 'Configured' : 'Not configured'
+      });
+    } else if (action === 'check-admin') {
+      // Check if admin users exist
+      try {
+        const adminUsersResult = await pool.query('SELECT id, name, email, is_admin FROM users WHERE is_admin = true');
+        res.json({
+          success: true,
+          adminUsers: adminUsersResult.rows,
+          message: `Found ${adminUsersResult.rows.length} admin users`
+        });
+      } catch (error) {
+        console.error('Error checking admin users:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Failed to check admin users.',
+          error: error.message
+        });
+      }
+    } else if (action === 'create-admin') {
+      // Create an admin user for testing
+      try {
+        const bcrypt = require('bcryptjs');
+        const hashedPassword = await bcrypt.hash('admin123', 10);
+        
+        const result = await pool.query(
+          'INSERT INTO users (name, email, password, is_admin) VALUES ($1, $2, $3, $4) RETURNING id, name, email, is_admin',
+          ['Admin User', 'admin@bloghive.com', hashedPassword, true]
+        );
+        
+        res.json({
+          success: true,
+          message: 'Admin user created successfully',
+          user: result.rows[0]
+        });
+      } catch (error) {
+        if (error.code === '23505') { // Unique constraint violation
+          res.json({
+            success: true,
+            message: 'Admin user already exists',
+            error: 'User with this email already exists'
+          });
+        } else {
+          console.error('Error creating admin user:', error);
+          res.status(500).json({
+            success: false,
+            message: 'Failed to create admin user.',
+            error: error.message
+          });
+        }
+      }
     } else {
       return res.status(400).json({ 
         success: false, 
-        message: 'Invalid action. Use: stats, users, or blogs' 
+        message: 'Invalid action. Use stats, users, blogs, test, check-admin, or create-admin' 
       });
     }
   }

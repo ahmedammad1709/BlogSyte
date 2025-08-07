@@ -58,14 +58,16 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useToast } from '../components/ui/toast';
+import { useAuth } from '../context/AuthContext';
 import { config } from '../lib/config';
 
 const Admin = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalBlogs: 0,
@@ -86,6 +88,40 @@ const Admin = () => {
     selectedUsers: []
   });
 
+  // Check authentication and admin status
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        console.log('No user found, redirecting to login');
+        navigate('/login');
+        return;
+      }
+      
+      if (!user.isAdmin) {
+        console.log('User is not admin, redirecting to dashboard');
+        addToast('Access denied. Admin privileges required.', 'error');
+        navigate('/dashboard');
+        return;
+      }
+
+      console.log('Admin user authenticated, fetching data...');
+      // Only fetch data if user is authenticated and is admin
+      fetchStats();
+      fetchUsers();
+      fetchBlogs();
+    }
+  }, [user, loading, navigate, addToast]);
+
+  // If still loading or not authenticated, show loading
+  if (loading || !user || !user.isAdmin) {
+    console.log('Admin page loading state:', { loading, user: user?.id, isAdmin: user?.isAdmin });
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3, color: 'from-blue-500 to-purple-600' },
     { id: 'users', label: 'Manage Users', icon: Users, color: 'from-green-500 to-teal-600' },
@@ -99,13 +135,14 @@ const Admin = () => {
     try {
       console.log('Fetching admin stats...');
       const response = await fetch(`${config.API_ENDPOINTS.ADMIN}?action=stats`);
+      console.log('Stats response status:', response.status);
       const data = await response.json();
       console.log('Stats response:', data);
       
       if (data.success) {
         setStats(data.stats);
-        setDailyPosts(data.dailyPosts);
-        setUserSignups(data.userSignups);
+        setDailyPosts(data.dailyPosts || []);
+        setUserSignups(data.userSignups || []);
         console.log('Stats updated:', data.stats);
       } else {
         console.error('Failed to fetch stats:', data.message);
@@ -119,10 +156,11 @@ const Admin = () => {
 
   // Fetch all users
   const fetchUsers = async () => {
-    setLoading(true);
+    setAdminLoading(true);
     try {
       console.log('Fetching users...');
       const response = await fetch(`${config.API_ENDPOINTS.ADMIN}?action=users`);
+      console.log('Users response status:', response.status);
       const data = await response.json();
       console.log('Users response:', data);
       
@@ -137,16 +175,17 @@ const Admin = () => {
       console.error('Error fetching users:', error);
       addToast('Error fetching users', 'error');
     } finally {
-      setLoading(false);
+      setAdminLoading(false);
     }
   };
 
   // Fetch all blogs
   const fetchBlogs = async () => {
-    setLoading(true);
+    setAdminLoading(true);
     try {
       console.log('Fetching blogs...');
       const response = await fetch(`${config.API_ENDPOINTS.ADMIN}?action=blogs`);
+      console.log('Blogs response status:', response.status);
       const data = await response.json();
       console.log('Blogs response:', data);
       
@@ -161,14 +200,14 @@ const Admin = () => {
       console.error('Error fetching blogs:', error);
       addToast('Error fetching blogs', 'error');
     } finally {
-      setLoading(false);
+      setAdminLoading(false);
     }
   };
 
   // Ban user
   const handleBanUser = async (userId) => {
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.ADMIN_BAN_USER}/${userId}`, {
+      const response = await fetch(`${config.API_ENDPOINTS.ADMIN}?action=user&userId=${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -194,7 +233,7 @@ const Admin = () => {
   // Unban user
   const handleUnbanUser = async (userId) => {
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.ADMIN_UNBAN_USER}/${userId}`, {
+      const response = await fetch(`${config.API_ENDPOINTS.ADMIN}?action=user&userId=${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -226,7 +265,7 @@ const Admin = () => {
   const confirmDeleteBlog = async () => {
     if (blogToDelete) {
       try {
-        const response = await fetch(`${config.API_ENDPOINTS.ADMIN_DELETE_BLOG}/${blogToDelete.id}`, {
+        const response = await fetch(`${config.API_ENDPOINTS.ADMIN}?action=blog&blogId=${blogToDelete.id}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -262,9 +301,9 @@ const Admin = () => {
       return;
     }
 
-    setLoading(true);
+    setAdminLoading(true);
     try {
-      const response = await fetch(config.API_ENDPOINTS.ADMIN_SEND_NOTIFICATION, {
+      const response = await fetch(`${config.API_ENDPOINTS.ADMIN}?action=send-notification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -295,7 +334,7 @@ const Admin = () => {
       console.error('Error sending notification:', error);
       addToast('Network error. Please try again.', 'error');
     } finally {
-      setLoading(false);
+      setAdminLoading(false);
     }
   };
 
@@ -316,9 +355,9 @@ const Admin = () => {
 
   // Load data on component mount
   useEffect(() => {
-    fetchStats();
-    fetchUsers();
-    fetchBlogs();
+    // fetchStats(); // This is now handled by the useEffect hook above
+    // fetchUsers(); // This is now handled by the useEffect hook above
+    // fetchBlogs(); // This is now handled by the useEffect hook above
   }, []);
 
   // Filter users and blogs based on search term
@@ -578,7 +617,7 @@ const Admin = () => {
                 </div>
               </div>
 
-              {loading ? (
+              {adminLoading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
                   <p className="text-gray-600">Loading users...</p>
@@ -729,7 +768,7 @@ const Admin = () => {
                 </div>
               </div>
 
-              {loading ? (
+              {adminLoading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-4"></div>
                   <p className="text-gray-600">Loading blogs...</p>
@@ -865,9 +904,9 @@ const Admin = () => {
                     <Button
                       onClick={handleSendNotification}
                       className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 shadow-lg py-3 rounded-xl"
-                      disabled={!notificationData.title || !notificationData.description || loading}
+                      disabled={!notificationData.title || !notificationData.description || adminLoading}
                     >
-                      {loading ? (
+                      {adminLoading ? (
                         <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
