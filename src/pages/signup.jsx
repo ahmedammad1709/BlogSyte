@@ -115,7 +115,7 @@ const Signup = () => {
           <div className="text-center mb-8">
             <div className="flex justify-center mb-6">
               <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110">
-                <Sparkles className="h-8 w-8 text-white" />
+                <span className="text-white font-bold text-3xl">B</span>
               </div>
             </div>
             <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-gray-900 via-purple-800 to-violet-900 bg-clip-text text-transparent">
