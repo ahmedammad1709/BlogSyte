@@ -49,7 +49,7 @@ const BlogCard = ({ id, title, description, coverImage, author, date, readingTim
           </div>
           
           <Link
-            to={`/blog/${id}`}
+            to="/login"
             className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
           >
             Read More →
