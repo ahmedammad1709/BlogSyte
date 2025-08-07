@@ -231,7 +231,7 @@ const Explore = () => {
 
     // Send API request to update likes in database
     try {
-      await fetch(`${config.API_ENDPOINTS.BLOG_LIKE}/${blogId}`, {
+      const response = await fetch(`${config.API_ENDPOINTS.BLOG_LIKE}/${blogId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -241,7 +241,12 @@ const Explore = () => {
           userId: user.id
         })
       });
-      fetchBlogs();
+      const data = await response.json();
+      if (data.success && data.stats) {
+        setBlogs(prev => prev.map(blog =>
+          blog.id === blogId ? { ...blog, likes: data.stats.likes, views: data.stats.views, comments: data.stats.comments } : blog
+        ));
+      }
     } catch (error) {
       console.error('Error updating like:', error);
     }
@@ -263,7 +268,7 @@ const Explore = () => {
   const handleViewIncrement = async (blogId) => {
     // Send API request to update views in database
     try {
-      await fetch(`${config.API_ENDPOINTS.BLOG_VIEW}/${blogId}`, {
+      const response = await fetch(`${config.API_ENDPOINTS.BLOG_VIEW}/${blogId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -274,7 +279,12 @@ const Explore = () => {
           userAgent: navigator.userAgent
         })
       });
-      fetchBlogs();
+      const data = await response.json();
+      if (data.success && data.stats) {
+        setBlogs(prev => prev.map(blog =>
+          blog.id === blogId ? { ...blog, likes: data.stats.likes, views: data.stats.views, comments: data.stats.comments } : blog
+        ));
+      }
     } catch (error) {
       console.error('Error updating view:', error);
     }
@@ -285,7 +295,7 @@ const Explore = () => {
     
     // Send API request to add comment to database
     try {
-      await fetch(`${config.API_ENDPOINTS.BLOG_COMMENT}/${blogId}`, {
+      const response = await fetch(`${config.API_ENDPOINTS.BLOG_COMMENT}/${blogId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -296,12 +306,27 @@ const Explore = () => {
           commentText: commentText
         })
       });
-      fetchBlogs();
-      loadComments(blogId);
-      setCommentTexts(prev => ({
-        ...prev,
-        [blogId]: ''
-      }));
+      const data = await response.json();
+      if (data.success && data.comment) {
+        // Add comment to local state
+        const newComment = {
+          id: data.comment.id,
+          text: data.comment.comment_text,
+          author: user.name,
+          date: new Date(data.comment.created_at).toLocaleDateString()
+        };
+        setComments(prev => ({
+          ...prev,
+          [blogId]: [...(prev[blogId] || []), newComment]
+        }));
+        // Update blog stats
+        if (data.stats) {
+          setBlogs(prev => prev.map(blog =>
+            blog.id === blogId ? { ...blog, likes: data.stats.likes, views: data.stats.views, comments: data.stats.comments } : blog
+          ));
+        }
+        setCommentTexts(prev => ({ ...prev, [blogId]: '' }));
+      }
     } catch (error) {
       console.error('Error adding comment:', error);
     }
