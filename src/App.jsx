@@ -17,6 +17,7 @@ import AdminPage from './pages/admin';
 import CreateBlogPage from './pages/create';
 import ContactPage from './pages/contact';
 import ExplorePage from './pages/explore';
+import PrivacyPolicy from './pages/privacypolicy';
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/privacypolicy" element={<PrivacyPolicy />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
