@@ -253,6 +253,11 @@ const Login = () => {
           </div>
         </div>
       </div>
+      <div className="text-center mt-6 text-sm text-gray-500">
+        <Link to="/privacypolicy" className="hover:underline mx-2">Privacy Policy</Link>
+        &bull;
+        <Link to="/privacypolicy" className="hover:underline mx-2">Terms of Service</Link>
+      </div>
     </div>
   );
 };
