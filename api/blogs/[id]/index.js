@@ -16,6 +16,14 @@ module.exports = async (req, res) => {
   }
 
   const { id } = req.query;
+  
+  // Add logging for debugging
+  console.log(`API Request: ${req.method} /api/blogs/${id}`, {
+    method: req.method,
+    id: id,
+    query: req.query,
+    body: req.body
+  });
 
   // GET - Get blog stats, like status, or comments
   if (req.method === 'GET') {
