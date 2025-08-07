@@ -50,9 +50,9 @@ const BlogCard = ({ id, title, description, coverImage, author, date, readingTim
           
           <Link
             to="/login"
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
+            className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors whitespace-nowrap"
           >
-            Read More →
+            Read More &rarr;
           </Link>
         </div>
       </div>

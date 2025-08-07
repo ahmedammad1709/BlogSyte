@@ -327,7 +327,7 @@ export default function HomePage() {
               className="group border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white transition-all duration-300 transform hover:scale-105"
               asChild
             >
-              <Link to="/explore">
+              <Link to="/explore" className="flex items-center whitespace-nowrap">
                 See All Blogs
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Link>
