@@ -47,7 +47,7 @@ module.exports = async (req, res) => {
         if (!id) return res.status(400).json({ success: false, message: 'Blog ID is required' });
         const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [id]);
         if (blogResult.rows.length === 0) return res.status(404).json({ success: false, message: 'Blog post not found' });
-        const commentsQuery = `SELECT c.id, c.comment_text, c.created_at, u.name as user_name, u.id as user_id FROM comments c JOIN users u ON c.user_id = u.id WHERE c.blog_id = $1 ORDER BY c.created_at DESC`;
+        const commentsQuery = `SELECT c.id, c.comment_text, c.created_at, u.name as author_name, u.id as user_id FROM comments c JOIN users u ON c.user_id = u.id WHERE c.blog_id = $1 ORDER BY c.created_at DESC`;
         const result = await pool.query(commentsQuery, [id]);
         res.json({ success: true, comments: result.rows });
       } catch (error) {

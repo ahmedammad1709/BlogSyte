@@ -147,6 +147,14 @@ const Explore = () => {
         for (const blog of blogs) {
           try {
             const response = await fetch(`${config.API_ENDPOINTS.BLOG_LIKE_STATUS}/${blog.id}?action=like-status&userId=${user.id}`);
+            
+            if (!response.ok) {
+              console.error(`HTTP ${response.status}: ${response.statusText}`);
+              const errorText = await response.text();
+              console.error('Response body:', errorText);
+              continue;
+            }
+            
             const data = await response.json();
             if (data.success && data.liked) {
               newLikedPosts.add(blog.id);
@@ -241,6 +249,14 @@ const Explore = () => {
           userId: user.id
         })
       });
+      
+      if (!response.ok) {
+        console.error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Response body:', errorText);
+        return;
+      }
+      
       const data = await response.json();
       if (data.success && data.stats) {
         setBlogs(prev => prev.map(blog =>
@@ -279,6 +295,14 @@ const Explore = () => {
           userAgent: navigator.userAgent
         })
       });
+      
+      if (!response.ok) {
+        console.error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Response body:', errorText);
+        return;
+      }
+      
       const data = await response.json();
       if (data.success && data.stats) {
         setBlogs(prev => prev.map(blog =>
@@ -306,13 +330,21 @@ const Explore = () => {
           commentText: commentText
         })
       });
+      
+      if (!response.ok) {
+        console.error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Response body:', errorText);
+        return;
+      }
+      
       const data = await response.json();
       if (data.success && data.comment) {
         // Add comment to local state
         const newComment = {
           id: data.comment.id,
           text: data.comment.comment_text,
-          author: user.name,
+          author: data.comment.author_name || user.name,
           date: new Date(data.comment.created_at).toLocaleDateString()
         };
         setComments(prev => ({
@@ -326,6 +358,8 @@ const Explore = () => {
           ));
         }
         setCommentTexts(prev => ({ ...prev, [blogId]: '' }));
+        // Refresh comments after posting
+        await loadComments(blogId);
       }
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -335,6 +369,14 @@ const Explore = () => {
   const loadComments = async (blogId) => {
     try {
       const response = await fetch(`${config.API_ENDPOINTS.BLOG_COMMENTS}/${blogId}?action=comments`);
+      
+      if (!response.ok) {
+        console.error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Response body:', errorText);
+        return;
+      }
+      
       const data = await response.json();
       if (data.success && data.comments) {
         const serverComments = data.comments.map(comment => ({
