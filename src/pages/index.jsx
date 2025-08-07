@@ -502,8 +502,8 @@ export default function HomePage() {
               <ul className="space-y-2">
                 <li><a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">Help Center</a></li>
                 <li><a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">Contact Us</a></li>
-                <li><Link to="/privacypolicy" className="text-gray-400 hover:text-white transition-colors duration-300">Privacy Policy</Link></li>
-                <li><Link to="/privacypolicy" className="text-gray-400 hover:text-white transition-colors duration-300">Terms of Service</Link></li>
+                <li><Link to="/privacypolicy#privacy-policy" className="text-gray-400 hover:text-white transition-colors duration-300">Privacy Policy</Link></li>
+                <li><Link to="/privacypolicy#terms-of-service" className="text-gray-400 hover:text-white transition-colors duration-300">Terms of Service</Link></li>
               </ul>
             </div>
           </div>
