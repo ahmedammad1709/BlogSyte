@@ -124,12 +124,20 @@ module.exports = async (req, res) => {
   
   // POST - Handle like, comment, or view
   else if (req.method === 'POST') {
-    const { action } = req.body;
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        body = {};
+      }
+    }
+    const { action } = body;
     
     if (action === 'like') {
       // Handle like/unlike
       try {
-        const { userId } = req.body;
+        const { userId } = body;
         
         if (!id || !userId) {
           return res.status(400).json({ 
@@ -192,7 +200,7 @@ module.exports = async (req, res) => {
     } else if (action === 'comment') {
       // Handle comment
       try {
-        const { userId, commentText } = req.body;
+        const { userId, commentText } = body;
         
         if (!id || !userId || !commentText) {
           return res.status(400).json({ 
@@ -244,7 +252,7 @@ module.exports = async (req, res) => {
     } else if (action === 'view') {
       // Handle view
       try {
-        const { userIp, userAgent } = req.body;
+        const { userIp, userAgent } = body;
         
         if (!id) {
           return res.status(400).json({ 
