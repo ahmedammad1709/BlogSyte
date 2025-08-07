@@ -146,7 +146,7 @@ const Explore = () => {
         
         for (const blog of blogs) {
           try {
-            const response = await fetch(`${config.API_ENDPOINTS.BLOG_LIKE_STATUS}?id=${blog.id}&action=like-status&userId=${user.id}`);
+            const response = await fetch(`${config.API_ENDPOINTS.BLOG_LIKE_STATUS}/${blog.id}?action=like-status&userId=${user.id}`);
             const data = await response.json();
             if (data.success && data.liked) {
               newLikedPosts.add(blog.id);
@@ -232,7 +232,7 @@ const Explore = () => {
 
     // Send API request to update likes in database
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.BLOG_LIKE}?id=${blogId}`, {
+      const response = await fetch(`${config.API_ENDPOINTS.BLOG_LIKE}/${blogId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -279,7 +279,7 @@ const Explore = () => {
   const handleViewIncrement = async (blogId) => {
     // Send API request to update views in database
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.BLOG_VIEW}?id=${blogId}`, {
+      const response = await fetch(`${config.API_ENDPOINTS.BLOG_VIEW}/${blogId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -316,7 +316,7 @@ const Explore = () => {
     
     // Send API request to add comment to database
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.BLOG_COMMENT}?id=${blogId}`, {
+      const response = await fetch(`${config.API_ENDPOINTS.BLOG_COMMENT}/${blogId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -372,7 +372,7 @@ const Explore = () => {
 
   const loadComments = async (blogId) => {
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.BLOG_COMMENTS}?id=${blogId}&action=comments`);
+      const response = await fetch(`${config.API_ENDPOINTS.BLOG_COMMENTS}/${blogId}?action=comments`);
       const data = await response.json();
       if (data.success && data.comments) {
         const serverComments = data.comments.map(comment => ({
