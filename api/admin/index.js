@@ -12,7 +12,7 @@ try {
 module.exports = async (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   // Handle preflight requests
@@ -97,45 +97,24 @@ module.exports = async (req, res) => {
           totalViews,
           bannedUsers,
           recentPosts,
-          recentUsers
-        };
-
-        console.log('Admin stats calculated:', stats);
-
-        res.json({
-          success: true,
-          stats,
+          recentUsers,
           dailyPosts: dailyPostsResult.rows,
           userSignups: userSignupsResult.rows
+        };
+
+        console.log('Admin stats:', stats);
+        
+        res.json({
+          success: true,
+          stats
         });
       } catch (error) {
         console.error('Error fetching admin stats:', error);
-        
-        // Return fallback data if database is not available
-        if (error.message.includes('Database connection') || error.message.includes('DATABASE_URL')) {
-          res.json({
-            success: true,
-            stats: {
-              totalUsers: 0,
-              totalBlogs: 0,
-              totalLikes: 0,
-              totalComments: 0,
-              totalViews: 0,
-              bannedUsers: 0,
-              recentPosts: 0,
-              recentUsers: 0
-            },
-            dailyPosts: [],
-            userSignups: [],
-            message: 'Using fallback data - database not configured'
-          });
-        } else {
-          res.status(500).json({ 
-            success: false, 
-            message: 'Failed to fetch admin stats. Database connection issue.',
-            error: error.message
-          });
-        }
+        res.status(500).json({
+          success: false,
+          message: 'Failed to fetch admin stats.',
+          error: error.message
+        });
       }
     } else if (action === 'users') {
       // Get users
@@ -152,17 +131,13 @@ module.exports = async (req, res) => {
         
         const query = `
           SELECT 
-            u.id, u.name, u.email, u.banned, u.banned_at, u.is_admin, u.created_at,
-            COUNT(bp.id) as posts_count
-          FROM users u
-          LEFT JOIN blog_posts bp ON u.id = bp.author_id
-          GROUP BY u.id, u.name, u.email, u.banned, u.banned_at, u.is_admin, u.created_at
-          ORDER BY u.created_at DESC 
+            id, name, email, banned, banned_at, is_admin, created_at
+          FROM users
+          ORDER BY created_at DESC 
           LIMIT $1 OFFSET $2
         `;
         
         const result = await pool.query(query, [parseInt(limit), offset]);
-        
         const countResult = await pool.query('SELECT COUNT(*) as total FROM users');
         const totalUsers = parseInt(countResult.rows[0].total);
         
@@ -181,28 +156,11 @@ module.exports = async (req, res) => {
         });
       } catch (error) {
         console.error('Error fetching users:', error);
-        
-        // Return fallback data if database is not available
-        if (error.message.includes('Database connection') || error.message.includes('DATABASE_URL')) {
-          res.json({
-            success: true,
-            users: [],
-            pagination: {
-              currentPage: 1,
-              totalPages: 0,
-              totalUsers: 0,
-              hasNext: false,
-              hasPrev: false
-            },
-            message: 'Using fallback data - database not configured'
-          });
-        } else {
-          res.status(500).json({ 
-            success: false, 
-            message: 'Failed to fetch users.',
-            error: error.message
-          });
-        }
+        res.status(500).json({
+          success: false,
+          message: 'Failed to fetch users.',
+          error: error.message
+        });
       }
     } else if (action === 'blogs') {
       // Get blogs
@@ -265,129 +223,190 @@ module.exports = async (req, res) => {
         });
       } catch (error) {
         console.error('Error fetching blogs:', error);
-        
-        // Return fallback data if database is not available
-        if (error.message.includes('Database connection') || error.message.includes('DATABASE_URL')) {
-          res.json({
-            success: true,
-            blogs: [],
-            pagination: {
-              currentPage: 1,
-              totalPages: 0,
-              totalBlogs: 0,
-              hasNext: false,
-              hasPrev: false
-            },
-            message: 'Using fallback data - database not configured'
-          });
-        } else {
-          res.status(500).json({ 
-            success: false, 
-            message: 'Failed to fetch blogs.',
-            error: error.message
-          });
-        }
+        res.status(500).json({
+          success: false,
+          message: 'Failed to fetch blogs.',
+          error: error.message
+        });
       }
-    } else if (action === 'test') {
-      // Simple test endpoint
-      res.json({
-        success: true,
-        message: 'Admin API is working',
-        timestamp: new Date().toISOString(),
-        databaseUrl: process.env.DATABASE_URL ? 'Configured' : 'Not configured'
-      });
     } else {
       return res.status(400).json({ 
         success: false, 
-        message: 'Invalid action. Use stats, users, blogs, or test' 
+        message: 'Invalid action. Use: stats, users, or blogs' 
       });
     }
   }
-  
-  // PUT - Handle user ban/unban
-  else if (req.method === 'PUT') {
-    try {
-      const { userId } = req.query;
-      const { action: userAction } = req.body; // 'ban' or 'unban'
-      
-      if (!userId || !userAction) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'User ID and action are required' 
-        });
-      }
+  // POST - Handle notifications
+  else if (req.method === 'POST') {
+    if (action === 'send-notification') {
+      try {
+        const { title, description, sendToAll, selectedUsers } = req.body;
+        
+        if (!title || !description) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Title and description are required' 
+          });
+        }
 
-      if (userAction === 'ban') {
-        await pool.query(
-          'UPDATE users SET banned = true, banned_at = NOW() WHERE id = $1',
-          [userId]
+        // Create the notification
+        const notificationResult = await pool.query(
+          'INSERT INTO notifications (title, description) VALUES ($1, $2) RETURNING id',
+          [title, description]
         );
+        
+        const notificationId = notificationResult.rows[0].id;
+        let recipientCount = 0;
+
+        if (sendToAll) {
+          // Send to all active users
+          const usersResult = await pool.query('SELECT id FROM users WHERE banned = false');
+          const userIds = usersResult.rows.map(user => user.id);
+          
+          if (userIds.length > 0) {
+            const values = userIds.map((userId, index) => `($${index + 2}, $1)`).join(', ');
+            const query = `INSERT INTO user_notifications (user_id, notification_id) VALUES ${values}`;
+            await pool.query(query, [notificationId, ...userIds]);
+            recipientCount = userIds.length;
+          }
+        } else if (selectedUsers && selectedUsers.length > 0) {
+          // Send to selected users
+          const values = selectedUsers.map((userId, index) => `($${index + 2}, $1)`).join(', ');
+          const query = `INSERT INTO user_notifications (user_id, notification_id) VALUES ${values}`;
+          await pool.query(query, [notificationId, ...selectedUsers]);
+          recipientCount = selectedUsers.length;
+        } else {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Please select users to send notification to' 
+          });
+        }
         
         res.json({ 
           success: true, 
-          message: 'User banned successfully' 
+          message: 'Notification sent successfully',
+          recipientCount
         });
-      } else if (userAction === 'unban') {
-        await pool.query(
-          'UPDATE users SET banned = false, banned_at = NULL WHERE id = $1',
-          [userId]
-        );
-        
-        res.json({ 
-          success: true, 
-          message: 'User unbanned successfully' 
-        });
-      } else {
-        return res.status(400).json({ 
+      } catch (error) {
+        console.error('Error sending notification:', error);
+        res.status(500).json({ 
           success: false, 
-          message: 'Invalid action. Use "ban" or "unban"' 
+          message: 'Failed to send notification.' 
         });
       }
-    } catch (error) {
-      console.error('Error updating user:', error);
-      res.status(500).json({ 
+    } else {
+      return res.status(400).json({ 
         success: false, 
-        message: 'Failed to update user.' 
+        message: 'Invalid action. Use: send-notification' 
       });
     }
   }
-  
+  // PUT - Handle user management
+  else if (req.method === 'PUT') {
+    if (action === 'user') {
+      try {
+        const { userId } = req.query;
+        const { action: userAction } = req.body; // 'ban' or 'unban'
+        
+        if (!userId || !userAction) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'User ID and action are required' 
+          });
+        }
+
+        // Check if user exists
+        const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+        if (userResult.rows.length === 0) {
+          return res.status(404).json({ 
+            success: false, 
+            message: 'User not found' 
+          });
+        }
+
+        if (userAction === 'ban') {
+          await pool.query(
+            'UPDATE users SET banned = true, banned_at = NOW() WHERE id = $1',
+            [userId]
+          );
+          
+          res.json({ 
+            success: true, 
+            message: 'User banned successfully' 
+          });
+        } else if (userAction === 'unban') {
+          await pool.query(
+            'UPDATE users SET banned = false, banned_at = NULL WHERE id = $1',
+            [userId]
+          );
+          
+          res.json({ 
+            success: true, 
+            message: 'User unbanned successfully' 
+          });
+        } else {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Invalid action. Use "ban" or "unban"' 
+          });
+        }
+      } catch (error) {
+        console.error('Error updating user:', error);
+        res.status(500).json({ 
+          success: false, 
+          message: 'Failed to update user.' 
+        });
+      }
+    } else {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid action. Use: user' 
+      });
+    }
+  }
   // DELETE - Handle blog deletion
   else if (req.method === 'DELETE') {
-    try {
-      const { blogId } = req.query;
-      
-      if (!blogId) {
-        return res.status(400).json({ 
+    if (action === 'blog') {
+      try {
+        const { blogId } = req.query;
+        
+        if (!blogId) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Blog ID is required' 
+          });
+        }
+
+        // Check if blog exists
+        const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
+        if (blogResult.rows.length === 0) {
+          return res.status(404).json({ 
+            success: false, 
+            message: 'Blog post not found' 
+          });
+        }
+
+        // Delete the blog post (cascade will handle related data)
+        await pool.query('DELETE FROM blog_posts WHERE id = $1', [blogId]);
+        
+        res.json({ 
+          success: true, 
+          message: 'Blog post deleted successfully' 
+        });
+      } catch (error) {
+        console.error('Error deleting blog:', error);
+        res.status(500).json({ 
           success: false, 
-          message: 'Blog ID is required' 
+          message: 'Failed to delete blog post.' 
         });
       }
-
-      const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
-      if (blogResult.rows.length === 0) {
-        return res.status(404).json({ 
-          success: false, 
-          message: 'Blog post not found' 
-        });
-      }
-
-      await pool.query('DELETE FROM blog_posts WHERE id = $1', [blogId]);
-      
-      res.json({ 
-        success: true, 
-        message: 'Blog post deleted successfully' 
-      });
-    } catch (error) {
-      console.error('Error deleting blog:', error);
-      res.status(500).json({ 
+    } else {
+      return res.status(400).json({ 
         success: false, 
-        message: 'Failed to delete blog post.' 
+        message: 'Invalid action. Use: blog' 
       });
     }
-  }
-  
-  else {
+  } else {
     return res.status(405).json({ 
       success: false, 
       message: 'Method not allowed' 
