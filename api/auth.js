@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const { sendOTP } = require('./lib/email.js');
+const { sendOTP, sendForgotPasswordOTP } = require('./lib/email.js');
 const { pool, initDatabase } = require('./lib/db.js');
 const { 
   storeOTP, 
@@ -60,10 +60,19 @@ module.exports = async (req, res) => {
       case 'verify-otp':
         return await handleVerifyOTP(req, res, email, otp);
       
+      case 'forgot-password-send-otp':
+        return await handleForgotPasswordSendOTP(req, res, email);
+      
+      case 'forgot-password-verify-otp':
+        return await handleForgotPasswordVerifyOTP(req, res, email, otp);
+      
+      case 'forgot-password-reset':
+        return await handleForgotPasswordReset(req, res, email, otp, req.body.newPassword);
+      
       default:
         return res.status(400).json({ 
           success: false, 
-          message: 'Invalid action. Use: login, send-otp, or verify-otp' 
+          message: 'Invalid action. Use: login, send-otp, verify-otp, forgot-password-send-otp, forgot-password-verify-otp, or forgot-password-reset' 
         });
     }
 
@@ -258,4 +267,162 @@ async function handleVerifyOTP(req, res, email, otp) {
       message: 'Invalid OTP. Please try again.' 
     });
   }
-} 
+}
+
+async function handleForgotPasswordSendOTP(req, res, email) {
+  if (!email) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Email is required' 
+    });
+  }
+
+  // Check if user exists
+  const existingUser = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+  if (existingUser.rows.length === 0) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'No account found with this email address' 
+    });
+  }
+
+  // Generate 6-digit OTP
+  const otp = generateOTP();
+  
+  // Store OTP for password reset
+  const otpStored = await storeOTP(email, otp);
+  
+  if (!otpStored) {
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Failed to store OTP data. Please try again.' 
+    });
+  }
+
+  // Send OTP via email
+  const emailSent = await sendForgotPasswordOTP(email, otp);
+  
+  if (!emailSent) {
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Failed to send OTP email. Please try again.' 
+    });
+  }
+
+  res.json({ 
+    success: true, 
+    message: 'Password reset OTP sent successfully',
+    email: email
+  });
+}
+
+async function handleForgotPasswordVerifyOTP(req, res, email, otp) {
+  if (!email || !otp) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Email and OTP are required' 
+    });
+  }
+
+  const storedOTPData = await getOTPData(email);
+  
+  if (!storedOTPData) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'OTP expired or not found. Please request a new OTP.' 
+    });
+  }
+
+  // Check if too many attempts
+  if (storedOTPData.attempts >= 3) {
+    await deleteOTPAndPendingUser(email);
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Too many failed attempts. Please request a new OTP.' 
+    });
+  }
+
+  // Verify OTP
+  if (storedOTPData.otp === otp) {
+    res.json({ 
+      success: true, 
+      message: 'OTP verified successfully'
+    });
+  } else {
+    // Increment attempts
+    await incrementOTPAttempts(email);
+    
+    res.status(400).json({ 
+      success: false, 
+      message: 'Invalid OTP. Please try again.' 
+    });
+  }
+}
+
+async function handleForgotPasswordReset(req, res, email, otp, newPassword) {
+  if (!email || !otp || !newPassword) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Email, OTP, and new password are required' 
+    });
+  }
+
+  const storedOTPData = await getOTPData(email);
+  
+  if (!storedOTPData) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'OTP expired or not found. Please request a new OTP.' 
+    });
+  }
+
+  // Verify OTP again
+  if (storedOTPData.otp !== otp) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Invalid OTP. Please try again.' 
+    });
+  }
+
+  try {
+    // Hash the new password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    
+    // Update user password in database
+    const updateQuery = `
+      UPDATE users 
+      SET password = $1 
+      WHERE email = $2 
+      RETURNING id, name, email
+    `;
+    
+    const result = await pool.query(updateQuery, [hashedPassword, email]);
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    // Clean up stored OTP data
+    await deleteOTPAndPendingUser(email);
+
+    res.json({ 
+      success: true, 
+      message: 'Password reset successfully',
+      user: {
+        id: result.rows[0].id,
+        name: result.rows[0].name,
+        email: result.rows[0].email
+      }
+    });
+  } catch (dbError) {
+    console.error('Database error:', dbError);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to reset password. Please try again.' 
+    });
+  }
+}

@@ -11,6 +11,7 @@ import NotFound from './pages/NotFound';
 import LoginPage from './pages/login';
 import SignupPage from './pages/signup';
 import VerifyPage from './pages/verify';
+import ForgotPasswordPage from './pages/forgot-password';
 import DashboardPage from './pages/dashboard';
 import AdminPage from './pages/admin';
 import CreateBlogPage from './pages/create';
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/verify" element={<VerifyPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <DashboardPage />
