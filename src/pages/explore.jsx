@@ -563,7 +563,7 @@ const Explore = () => {
             </div>
 
             {/* Category Filter */}
-            <div className="relative category-dropdown">
+            <div className="relative category-dropdown relative z-[9999]">
               <button
                 onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
                 className="flex items-center space-x-2 px-4 py-3 border border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm hover:bg-white/70 transition-colors w-full lg:w-auto"
@@ -579,7 +579,7 @@ const Explore = () => {
                 <>
                   {/* Backdrop overlay for mobile */}
                   <div className="fixed inset-0 bg-black bg-opacity-25 z-[9998] lg:hidden" onClick={() => setShowCategoryDropdown(false)} />
-                  <div className="absolute top-full left-0 mt-2 w-full lg:w-64 z-[99999] bg-white rounded-xl shadow-2xl border border-gray-200 z-[9999] max-h-96 overflow-y-auto lg:right-0 lg:left-auto">
+                  <div className="absolute top-full left-0 mt-2 w-full lg:w-64 bg-white rounded-xl shadow-2xl border border-gray-200 z-[9999] max-h-96 overflow-y-auto lg:right-0 lg:left-auto">
                     <div className="p-2">
                       {categories.map((category) => {
                         const Icon = category.icon;
