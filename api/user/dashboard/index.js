@@ -28,6 +28,7 @@ module.exports = async (req, res) => {
   }
 
   try {
+    console.log('Dashboard API request received:', req.query);
     const { userId } = req.query;
     
     if (!userId) {
@@ -39,8 +40,11 @@ module.exports = async (req, res) => {
 
     // Check if database is connected
     if (!pool) {
+      console.error('Database pool is not available');
       throw new Error('Database connection not available');
     }
+    
+    console.log('Checking if user exists with ID:', userId);
 
     // Check if user exists
     const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
@@ -108,10 +112,23 @@ module.exports = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in dashboard API:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Provide more detailed error information
+    const errorDetails = {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    };
+    
+    console.error('Error details:', errorDetails);
+    
     res.status(500).json({ 
       success: false, 
       message: 'Server error', 
-      error: error.message 
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
     });
   }
 };

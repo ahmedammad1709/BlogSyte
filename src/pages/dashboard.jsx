@@ -235,7 +235,22 @@ const Dashboard = () => {
       
       // Check if response is OK before parsing JSON
       if (!response.ok) {
-        throw new Error(`API responded with status: ${response.status}`);
+        // Try to get error details from response
+        try {
+          const errorResponse = await response.json();
+          console.error('API error response:', errorResponse);
+          throw new Error(errorResponse.message || `API responded with status: ${response.status}`);
+        } catch (jsonError) {
+          // If we can't parse JSON, try to get text
+          try {
+            const textResponse = await response.text();
+            console.error('API error text response:', textResponse.substring(0, 200));
+            throw new Error(`API error (${response.status}): ${textResponse.substring(0, 100)}...`);
+          } catch (textError) {
+            // If all else fails, throw generic error
+            throw new Error(`API responded with status: ${response.status}`);
+          }
+        }
       }
       
       const contentType = response.headers.get('content-type');
@@ -244,8 +259,8 @@ const Dashboard = () => {
       if (!contentType || !contentType.includes('application/json')) {
         // Try to get the text response for debugging
         const textResponse = await response.text();
-        console.error('Non-JSON response received:', textResponse.substring(0, 100) + '...');
-        throw new Error(`Expected JSON response but got ${contentType}`);
+        console.error('Non-JSON response received:', textResponse.substring(0, 200));
+        throw new Error(`Expected JSON response but got ${contentType || 'unknown content type'}`);
       }
       
       // Parse the JSON from the original response
@@ -264,13 +279,25 @@ const Dashboard = () => {
           
           console.log('Parsed stats values:', { totalBlogs, totalLikes, totalComments, totalViews });
           
-          setDashboardStats({
-            totalBlogs,
-            totalLikes,
-            totalComments,
-            totalViews,
-            blogs: data.stats.blogs || []
-          });
+          // Only update state if we have valid numbers
+          if (!isNaN(totalBlogs) || !isNaN(totalLikes) || !isNaN(totalComments) || !isNaN(totalViews)) {
+            setDashboardStats({
+              totalBlogs: isNaN(totalBlogs) ? 0 : totalBlogs,
+              totalLikes: isNaN(totalLikes) ? 0 : totalLikes,
+              totalComments: isNaN(totalComments) ? 0 : totalComments,
+              totalViews: isNaN(totalViews) ? 0 : totalViews,
+              blogs: data.stats.blogs || []
+            });
+          } else {
+            console.warn('Invalid stats data received, using default values');
+            setDashboardStats({
+              totalBlogs: 0,
+              totalLikes: 0,
+              totalComments: 0,
+              totalViews: 0,
+              blogs: []
+            });
+          }
           
           // Show success toast
           addToast('Dashboard stats updated successfully', 'success');
