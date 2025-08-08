@@ -2,10 +2,10 @@ const { Pool } = require('pg');
 
 // Create a connection pool with better error handling
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? {
+  connectionString: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_yHKUQv4aITS7@ep-holy-cherry-a720quld-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+  ssl: {
     rejectUnauthorized: false
-  } : false,
+  },
   max: 20, // Maximum number of clients in the pool
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
   connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
@@ -137,32 +137,106 @@ const getBlogStats = async (blogId) => {
 
 const getUserDashboardStats = async (userId) => {
   try {
-    const postsResult = await pool.query('SELECT COUNT(*) as posts FROM blog_posts WHERE author_id = $1', [userId]);
-    const likesResult = await pool.query(`
+    console.log('Getting dashboard stats for user ID:', userId);
+    
+    // Get total posts count
+    const postsQuery = 'SELECT COUNT(*) as posts FROM blog_posts WHERE author_id = $1';
+    const postsResult = await pool.query(postsQuery, [userId]);
+    console.log('Posts query result:', postsResult.rows[0]);
+    
+    // Get total likes count - check both likes and blog_likes tables
+    const likesQuery = `
       SELECT COUNT(*) as total_likes 
       FROM likes l 
       JOIN blog_posts bp ON l.blog_id = bp.id 
       WHERE bp.author_id = $1
-    `, [userId]);
-    const commentsResult = await pool.query(`
+    `;
+    const likesResult = await pool.query(likesQuery, [userId]);
+    console.log('Likes query result:', likesResult.rows[0]);
+    
+    // Also check blog_likes table if it exists
+    let blogLikesCount = 0;
+    try {
+      const blogLikesQuery = `
+        SELECT COUNT(*) as blog_likes 
+        FROM blog_likes bl 
+        JOIN blog_posts bp ON bl.blog_id = bp.id 
+        WHERE bp.author_id = $1
+      `;
+      const blogLikesResult = await pool.query(blogLikesQuery, [userId]);
+      blogLikesCount = parseInt(blogLikesResult.rows[0]?.blog_likes) || 0;
+      console.log('Blog likes query result:', blogLikesResult.rows[0]);
+    } catch (err) {
+      console.log('Blog likes table might not exist, skipping:', err.message);
+    }
+    
+    // Get total comments count - check both comments and blog_comments tables
+    const commentsQuery = `
       SELECT COUNT(*) as total_comments 
       FROM comments c 
       JOIN blog_posts bp ON c.blog_id = bp.id 
       WHERE bp.author_id = $1
-    `, [userId]);
-    const viewsResult = await pool.query(`
+    `;
+    const commentsResult = await pool.query(commentsQuery, [userId]);
+    console.log('Comments query result:', commentsResult.rows[0]);
+    
+    // Also check blog_comments table if it exists
+    let blogCommentsCount = 0;
+    try {
+      const blogCommentsQuery = `
+        SELECT COUNT(*) as blog_comments 
+        FROM blog_comments bc 
+        JOIN blog_posts bp ON bc.blog_id = bp.id 
+        WHERE bp.author_id = $1
+      `;
+      const blogCommentsResult = await pool.query(blogCommentsQuery, [userId]);
+      blogCommentsCount = parseInt(blogCommentsResult.rows[0]?.blog_comments) || 0;
+      console.log('Blog comments query result:', blogCommentsResult.rows[0]);
+    } catch (err) {
+      console.log('Blog comments table might not exist, skipping:', err.message);
+    }
+    
+    // Get total views count - check both views and blog_views tables
+    const viewsQuery = `
       SELECT COUNT(*) as total_views 
       FROM views v 
       JOIN blog_posts bp ON v.blog_id = bp.id 
       WHERE bp.author_id = $1
-    `, [userId]);
+    `;
+    const viewsResult = await pool.query(viewsQuery, [userId]);
+    console.log('Views query result:', viewsResult.rows[0]);
     
-    return {
-      posts: parseInt(postsResult.rows[0].posts),
-      totalLikes: parseInt(likesResult.rows[0].total_likes),
-      totalComments: parseInt(commentsResult.rows[0].total_comments),
-      totalViews: parseInt(viewsResult.rows[0].total_views)
+    // Also check blog_views table if it exists
+    let blogViewsCount = 0;
+    try {
+      const blogViewsQuery = `
+        SELECT COUNT(*) as blog_views 
+        FROM blog_views bv 
+        JOIN blog_posts bp ON bv.blog_id = bp.id 
+        WHERE bp.author_id = $1
+      `;
+      const blogViewsResult = await pool.query(blogViewsQuery, [userId]);
+      blogViewsCount = parseInt(blogViewsResult.rows[0]?.blog_views) || 0;
+      console.log('Blog views query result:', blogViewsResult.rows[0]);
+    } catch (err) {
+      console.log('Blog views table might not exist, skipping:', err.message);
+    }
+    
+    // Ensure we have valid numbers by using parseInt with fallback to 0
+    const posts = parseInt(postsResult.rows[0]?.posts) || 0;
+    const totalLikes = (parseInt(likesResult.rows[0]?.total_likes) || 0) + blogLikesCount;
+    const totalComments = (parseInt(commentsResult.rows[0]?.total_comments) || 0) + blogCommentsCount;
+    const totalViews = (parseInt(viewsResult.rows[0]?.total_views) || 0) + blogViewsCount;
+    
+    const stats = {
+      posts,
+      totalLikes,
+      totalComments,
+      totalViews
     };
+    
+    console.log('Calculated dashboard stats:', stats);
+    return stats;
   } catch (error) {
     console.error('Error getting user dashboard stats:', error);
     return { posts: 0, totalLikes: 0, totalComments: 0, totalViews: 0 };
@@ -296,4 +370,4 @@ module.exports = {
   getBlogStats, 
   getUserDashboardStats,
   addSampleData
-}; 
+};

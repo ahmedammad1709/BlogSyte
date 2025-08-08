@@ -199,46 +199,122 @@ const Dashboard = () => {
   };
 
   const fetchDashboardStats = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('No user ID available, skipping dashboard stats fetch');
+      return;
+    }
     
     try {
-      // Try the path parameter format first
       console.log('Fetching dashboard stats for user:', user.id);
-      const response = await fetch(`${config.API_ENDPOINTS.USER_DASHBOARD}/${user.id}`);
-      const data = await response.json();
+      
+      // Use the correct API endpoint format with query parameters
+      const apiUrl = `${config.API_ENDPOINTS.USER_DASHBOARD}?userId=${user.id}`;
+      console.log('Dashboard API URL:', apiUrl);
+      
+      // Add a timestamp to prevent caching
+      const fetchOptions = {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Accept': 'application/json'
+        },
+        // Add a cache-busting query parameter
+        cache: 'no-store'
+      };
+      
+      console.log('Sending fetch request with options:', fetchOptions);
+      // Use proper URL format with cache-busting parameter
+      const cacheBuster = Date.now();
+      const finalUrl = apiUrl.includes('?') ? `${apiUrl}&_=${cacheBuster}` : `${apiUrl}?_=${cacheBuster}`;
+      console.log('Final URL with cache buster:', finalUrl);
+      
+      const response = await fetch(finalUrl, fetchOptions);
+      console.log('Dashboard API response status:', response.status);
+      
+      // Check if response is OK before parsing JSON
+      if (!response.ok) {
+        throw new Error(`API responded with status: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      console.log('Response content type:', contentType);
+      
+      if (!contentType || !contentType.includes('application/json')) {
+        // Try to get the text response for debugging
+        const textResponse = await response.text();
+        console.error('Non-JSON response received:', textResponse.substring(0, 100) + '...');
+        throw new Error(`Expected JSON response but got ${contentType}`);
+      }
+      
+      // Parse the JSON from the original response
+      const data = await response.clone().json();
+      
+      console.log('Dashboard API response data:', data);
       
       if (data.success) {
         console.log('Dashboard stats fetched successfully:', data.stats);
         if (data.stats) {
+          // Ensure we're parsing numbers correctly
+          const totalBlogs = parseInt(data.stats.totalBlogs || data.stats.posts || 0);
+          const totalLikes = parseInt(data.stats.totalLikes || 0);
+          const totalComments = parseInt(data.stats.totalComments || 0);
+          const totalViews = parseInt(data.stats.totalViews || 0);
+          
+          console.log('Parsed stats values:', { totalBlogs, totalLikes, totalComments, totalViews });
+          
           setDashboardStats({
-            totalBlogs: data.stats.totalBlogs || 0,
-            totalLikes: data.stats.totalLikes || 0,
-            totalComments: data.stats.totalComments || 0,
-            totalViews: data.stats.totalViews || 0,
+            totalBlogs,
+            totalLikes,
+            totalComments,
+            totalViews,
             blogs: data.stats.blogs || []
           });
+          
+          // Show success toast
+          addToast('Dashboard stats updated successfully', 'success');
         } else {
           console.error('Stats data is missing in the API response');
+          // Set default values if stats are missing
+          setDashboardStats({
+            totalBlogs: 0,
+            totalLikes: 0,
+            totalComments: 0,
+            totalViews: 0,
+            blogs: []
+          });
+          
+          // Show warning toast
+          addToast('Stats data is missing. Please try again later.', 'warning');
         }
       } else {
         console.error('Failed to fetch dashboard stats:', data.message);
-        // Fallback to query parameter format
-        const fallbackResponse = await fetch(`${config.API_ENDPOINTS.USER_DASHBOARD}?userId=${user.id}`);
-        const fallbackData = await fallbackResponse.json();
+        // Set default values on error
+        setDashboardStats({
+          totalBlogs: 0,
+          totalLikes: 0,
+          totalComments: 0,
+          totalViews: 0,
+          blogs: []
+        });
         
-        if (fallbackData.success && fallbackData.stats) {
-          console.log('Dashboard stats fetched with fallback:', fallbackData.stats);
-          setDashboardStats({
-            totalBlogs: fallbackData.stats.totalBlogs || 0,
-            totalLikes: fallbackData.stats.totalLikes || 0,
-            totalComments: fallbackData.stats.totalComments || 0,
-            totalViews: fallbackData.stats.totalViews || 0,
-            blogs: fallbackData.stats.blogs || []
-          });
-        }
+        // Show error toast
+        addToast(`Failed to load stats: ${data.message}`, 'error');
       }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
+      // Set default values on error
+      setDashboardStats({
+        totalBlogs: 0,
+        totalLikes: 0,
+        totalComments: 0,
+        totalViews: 0,
+        blogs: []
+      });
+      
+      // Show error toast to user
+      addToast(`Failed to load dashboard stats: ${error.message}`, 'error');
     }
   };
 
