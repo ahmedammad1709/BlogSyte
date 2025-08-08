@@ -28,7 +28,8 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { userId } = req.query;
+    // Extract userId from URL path parameter or query parameter
+    const userId = req.query.userId || req.url.split('/').pop();
     
     if (!userId) {
       return res.status(400).json({ 
@@ -130,4 +131,4 @@ module.exports = async (req, res) => {
       });
     }
   }
-}; 
+};

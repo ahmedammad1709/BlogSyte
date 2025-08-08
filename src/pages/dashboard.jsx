@@ -82,6 +82,7 @@ const Dashboard = () => {
     if (user) {
       fetchUserPosts();
       fetchDashboardStats();
+      console.log('User authenticated, fetching dashboard data for user:', user.id);
     }
   }, [user]);
 
@@ -89,6 +90,9 @@ const Dashboard = () => {
   useEffect(() => {
     if (user && (activeTab === 'overview' || activeTab === 'blogs')) {
       fetchUserPosts();
+      if (activeTab === 'overview') {
+        fetchDashboardStats();
+      }
     }
   }, [activeTab, user]);
 
@@ -97,6 +101,9 @@ const Dashboard = () => {
     if (user && (activeTab === 'overview' || activeTab === 'blogs')) {
       const interval = setInterval(() => {
         fetchUserPosts();
+        if (activeTab === 'overview') {
+          fetchDashboardStats();
+        }
       }, 30000); // Refresh every 30 seconds
 
       return () => clearInterval(interval);
@@ -195,13 +202,40 @@ const Dashboard = () => {
     if (!user?.id) return;
     
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.USER_DASHBOARD}?userId=${user.id}`);
+      // Try the path parameter format first
+      console.log('Fetching dashboard stats for user:', user.id);
+      const response = await fetch(`${config.API_ENDPOINTS.USER_DASHBOARD}/${user.id}`);
       const data = await response.json();
       
       if (data.success) {
-        setDashboardStats(data.stats);
+        console.log('Dashboard stats fetched successfully:', data.stats);
+        if (data.stats) {
+          setDashboardStats({
+            totalBlogs: data.stats.totalBlogs || 0,
+            totalLikes: data.stats.totalLikes || 0,
+            totalComments: data.stats.totalComments || 0,
+            totalViews: data.stats.totalViews || 0,
+            blogs: data.stats.blogs || []
+          });
+        } else {
+          console.error('Stats data is missing in the API response');
+        }
       } else {
         console.error('Failed to fetch dashboard stats:', data.message);
+        // Fallback to query parameter format
+        const fallbackResponse = await fetch(`${config.API_ENDPOINTS.USER_DASHBOARD}?userId=${user.id}`);
+        const fallbackData = await fallbackResponse.json();
+        
+        if (fallbackData.success && fallbackData.stats) {
+          console.log('Dashboard stats fetched with fallback:', fallbackData.stats);
+          setDashboardStats({
+            totalBlogs: fallbackData.stats.totalBlogs || 0,
+            totalLikes: fallbackData.stats.totalLikes || 0,
+            totalComments: fallbackData.stats.totalComments || 0,
+            totalViews: fallbackData.stats.totalViews || 0,
+            blogs: fallbackData.stats.blogs || []
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
@@ -1428,4 +1462,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;
