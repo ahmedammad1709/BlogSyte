@@ -146,7 +146,7 @@ const Explore = () => {
         
         for (const blog of blogs) {
           try {
-            const response = await fetch(`${config.API_ENDPOINTS.BLOG_LIKE_STATUS}/${blog.id}?action=like-status&userId=${user.id}`);
+            const response = await fetch(`${config.API_ENDPOINTS.BLOG_LIKE_STATUS}/${blog.id}/like-status?userId=${user.id}`);
             
             if (!response.ok) {
               console.error(`HTTP ${response.status}: ${response.statusText}`);
@@ -239,13 +239,12 @@ const Explore = () => {
 
     // Send API request to update likes in database
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.BLOG_LIKE}/${blogId}`, {
+      const response = await fetch(`${config.API_ENDPOINTS.BLOG_LIKE}/${blogId}/like`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          action: 'like',
           userId: user.id
         })
       });
@@ -284,13 +283,12 @@ const Explore = () => {
   const handleViewIncrement = async (blogId) => {
     // Send API request to update views in database
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.BLOG_VIEW}/${blogId}`, {
+      const response = await fetch(`${config.API_ENDPOINTS.BLOG_VIEW}/${blogId}/view`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          action: 'view',
           userIp: '127.0.0.1', // This would be the actual IP in production
           userAgent: navigator.userAgent
         })
@@ -319,13 +317,12 @@ const Explore = () => {
     
     // Send API request to add comment to database
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.BLOG_COMMENT}/${blogId}`, {
+      const response = await fetch(`${config.API_ENDPOINTS.BLOG_COMMENT}/${blogId}/comment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          action: 'comment',
           userId: user.id,
           commentText: commentText
         })
@@ -368,7 +365,7 @@ const Explore = () => {
 
   const loadComments = async (blogId) => {
     try {
-      const response = await fetch(`${config.API_ENDPOINTS.BLOG_COMMENTS}/${blogId}?action=comments`);
+      const response = await fetch(`${config.API_ENDPOINTS.BLOG_COMMENTS}/${blogId}/comments`);
       
       if (!response.ok) {
         console.error(`HTTP ${response.status}: ${response.statusText}`);

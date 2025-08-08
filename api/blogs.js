@@ -15,9 +15,13 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // Extract blog ID from URL path
-  const urlParts = req.url.split('/');
-  const blogId = urlParts[urlParts.length - 1];
+  // Extract blog ID and optional sub-action from URL path safely
+  const pathOnly = (req.url || '').split('?')[0];
+  const segments = pathOnly.split('/').filter(Boolean); // e.g., ["api","blogs","123","comment"]
+  const blogsIndex = segments.indexOf('blogs');
+  const rawId = blogsIndex >= 0 && segments.length > blogsIndex + 1 ? segments[blogsIndex + 1] : undefined;
+  const pathAction = blogsIndex >= 0 && segments.length > blogsIndex + 2 ? segments[blogsIndex + 2] : undefined;
+  const blogId = rawId;
   
   // Add logging for debugging
   console.log(`API Request: ${req.method} /api/blogs/${blogId}`, {
@@ -28,9 +32,19 @@ module.exports = async (req, res) => {
     body: req.body
   });
 
+  // Resolve action from query/body or from sub-path (supports both styles)
+  const queryAction = req.query?.action;
+  const bodyRaw = req.body;
+  let bodyParsed = bodyRaw;
+  if (typeof bodyParsed === 'string') {
+    try { bodyParsed = JSON.parse(bodyParsed); } catch (e) { bodyParsed = {}; }
+  }
+  const bodyAction = bodyParsed?.action;
+  const resolvedAction = queryAction || bodyAction || pathAction;
+
   // GET - Get blog stats, like status, or comments
   if (req.method === 'GET') {
-    const { action } = req.query;
+    const action = resolvedAction;
     if (action === 'stats') {
       try {
         if (!blogId) return res.status(400).json({ success: false, message: 'Blog ID is required' });
@@ -71,11 +85,8 @@ module.exports = async (req, res) => {
   }
   // POST - Handle like, comment, or view
   else if (req.method === 'POST') {
-    let body = req.body;
-    if (typeof body === 'string') {
-      try { body = JSON.parse(body); } catch (e) { body = {}; }
-    }
-    const { action } = body;
+    let body = bodyParsed || {};
+    const action = resolvedAction;
     if (!action) {
       return res.status(400).json({ success: false, message: 'Action is required in the request body.' });
     }
