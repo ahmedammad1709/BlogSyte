@@ -4,6 +4,16 @@ const { pool, initDatabase, getBlogStats } = require('./lib/db.js');
 initDatabase();
 
 module.exports = async (req, res) => {
+  // Force method to be recognized (backup fix for 405 errors)
+  const method = req.method || req.headers['x-http-method-override'] || 'GET';
+  req.method = method;
+  
+  // Log the very first thing we see
+  console.log('=== BLOGS API HANDLER START ===');
+  console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
+  console.log('Request headers:', req.headers);
+  
   // Enable CORS for all methods
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -11,6 +21,7 @@ module.exports = async (req, res) => {
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS preflight request');
     res.status(200).end();
     return;
   }
@@ -32,7 +43,8 @@ module.exports = async (req, res) => {
     rawId,
     pathAction,
     finalBlogId: blogId,
-    method: req.method
+    method: req.method,
+    headers: req.headers
   });
   
   // Resolve action from query/body or from sub-path (supports both styles)
@@ -64,6 +76,16 @@ module.exports = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Database connection error' });
   }
 
+  // Log the incoming request method for debugging
+  console.log(`Processing ${req.method} request for blog ID: ${blogId}`);
+  console.log('Method comparison:', {
+    method: req.method,
+    isGET: req.method === 'GET',
+    isPOST: req.method === 'POST',
+    isPUT: req.method === 'PUT',
+    isDELETE: req.method === 'DELETE'
+  });
+  
   // GET - Handle different actions based on path or query
   if (req.method === 'GET') {
     // If no blogId, this is a request to get all blog posts
@@ -479,6 +501,18 @@ module.exports = async (req, res) => {
       });
     }
   } else {
-    return res.status(405).json({ success: false, message: 'Method not allowed' });
+    console.error(`Method not allowed: ${req.method}`);
+    console.error('Available methods: GET, POST, PUT, DELETE');
+    console.error('Request details:', {
+      method: req.method,
+      url: req.url,
+      blogId: blogId,
+      headers: req.headers
+    });
+    return res.status(405).json({ 
+      success: false, 
+      message: `Method not allowed: ${req.method}`,
+      allowedMethods: ['GET', 'POST', 'PUT', 'DELETE']
+    });
   }
 };
