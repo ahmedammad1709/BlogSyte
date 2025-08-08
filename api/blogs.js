@@ -4,9 +4,9 @@ const { pool, initDatabase, getBlogStats } = require('./lib/db.js');
 initDatabase();
 
 module.exports = async (req, res) => {
-  // Enable CORS
+  // Enable CORS for all methods
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   // Handle preflight requests
@@ -237,6 +237,22 @@ module.exports = async (req, res) => {
           if (!blogId || !userId) return res.status(400).json({ success: false, message: 'Blog ID and User ID are required' });
           const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
           if (blogResult.rows.length === 0) return res.status(404).json({ success: false, message: 'Blog post not found' });
+          
+          // Check if likes table exists, create if not
+          try {
+            await pool.query(`
+              CREATE TABLE IF NOT EXISTS likes (
+                id SERIAL PRIMARY KEY,
+                blog_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(blog_id, user_id)
+              )
+            `);
+          } catch (tableError) {
+            console.error('Error creating likes table:', tableError);
+          }
+          
           const existingLike = await pool.query('SELECT * FROM likes WHERE blog_id = $1 AND user_id = $2', [blogId, userId]);
           if (existingLike.rows.length > 0) {
             await pool.query('DELETE FROM likes WHERE blog_id = $1 AND user_id = $2', [blogId, userId]);
@@ -257,6 +273,21 @@ module.exports = async (req, res) => {
           if (blogResult.rows.length === 0) return res.status(404).json({ success: false, message: 'Blog post not found' });
           const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
           if (userResult.rows.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
+          
+          // Check if comments table exists, create if not
+          try {
+            await pool.query(`
+              CREATE TABLE IF NOT EXISTS comments (
+                id SERIAL PRIMARY KEY,
+                blog_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                comment_text TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              )
+            `);
+          } catch (tableError) {
+            console.error('Error creating comments table:', tableError);
+          }
           const insertQuery = `INSERT INTO comments (blog_id, user_id, comment_text) VALUES ($1, $2, $3) RETURNING id, blog_id, user_id, comment_text, created_at`;
           const result = await pool.query(insertQuery, [blogId, userId, commentText]);
           const stats = await getBlogStats(blogId);
@@ -271,6 +302,22 @@ module.exports = async (req, res) => {
           if (!blogId) return res.status(400).json({ success: false, message: 'Blog ID is required' });
           const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
           if (blogResult.rows.length === 0) return res.status(404).json({ success: false, message: 'Blog post not found' });
+          
+          // Check if views table exists, create if not
+          try {
+            await pool.query(`
+              CREATE TABLE IF NOT EXISTS views (
+                id SERIAL PRIMARY KEY,
+                blog_id INTEGER NOT NULL,
+                user_ip VARCHAR(50),
+                user_agent TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              )
+            `);
+          } catch (tableError) {
+            console.error('Error creating views table:', tableError);
+          }
+          
           const insertQuery = `INSERT INTO views (blog_id, user_ip, user_agent) VALUES ($1, $2, $3)`;
           await pool.query(insertQuery, [blogId, userIp || null, userAgent || null]);
           const stats = await getBlogStats(blogId);
@@ -283,7 +330,97 @@ module.exports = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Invalid action. Use like, comment, or view' });
       }
     }
+  } 
+  // PUT - Handle blog update
+  else if (req.method === 'PUT') {
+    if (!blogId) {
+      return res.status(400).json({ success: false, message: 'Blog ID is required' });
+    }
+
+    try {
+      const { title, description, category } = req.body;
+      
+      if (!title || !description || !category) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'All fields are required' 
+        });
+      }
+
+      // Check if blog post exists
+      const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
+      if (blogResult.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Blog post not found' });
+      }
+
+      // Update blog post
+      const updateQuery = `
+        UPDATE blog_posts 
+        SET title = $1, description = $2, category = $3, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = $4 
+        RETURNING id, title, description, category, author_id, author_name, created_at, updated_at
+      `;
+      
+      const result = await pool.query(updateQuery, [
+        title,
+        description,
+        category,
+        blogId
+      ]);
+
+      res.json({ 
+        success: true, 
+        message: 'Blog post updated successfully',
+        post: result.rows[0]
+      });
+      
+    } catch (error) {
+      console.error('Error updating blog post:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to update blog post.' 
+      });
+    }
+  }
+  // DELETE - Handle blog deletion
+  else if (req.method === 'DELETE') {
+    if (!blogId) {
+      return res.status(400).json({ success: false, message: 'Blog ID is required' });
+    }
+
+    try {
+      // Check if blog post exists
+      const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
+      if (blogResult.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Blog post not found' });
+      }
+
+      // Delete blog post
+      await pool.query('DELETE FROM blog_posts WHERE id = $1', [blogId]);
+      
+      // Delete associated likes, comments, and views
+      try {
+        await pool.query('DELETE FROM likes WHERE blog_id = $1', [blogId]);
+        await pool.query('DELETE FROM comments WHERE blog_id = $1', [blogId]);
+        await pool.query('DELETE FROM views WHERE blog_id = $1', [blogId]);
+      } catch (cleanupError) {
+        console.error('Error cleaning up associated data:', cleanupError);
+        // Continue with the response even if cleanup fails
+      }
+
+      res.json({ 
+        success: true, 
+        message: 'Blog post deleted successfully'
+      });
+      
+    } catch (error) {
+      console.error('Error deleting blog post:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to delete blog post.' 
+      });
+    }
   } else {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
-}; 
+};

@@ -239,6 +239,7 @@ const Explore = () => {
 
     // Send API request to update likes in database
     try {
+      console.log(`Sending like request to ${config.API_ENDPOINTS.BLOG_LIKE}/${blogId}/like`);
       const response = await fetch(`${config.API_ENDPOINTS.BLOG_LIKE}/${blogId}/like`, {
         method: 'POST',
         headers: {
@@ -257,6 +258,7 @@ const Explore = () => {
       }
       
       const data = await response.json();
+      console.log('Like response data:', data);
       if (data.success && data.stats) {
         setBlogs(prev => prev.map(blog =>
           blog.id === blogId ? { ...blog, likes: data.stats.likes, views: data.stats.views, comments: data.stats.comments } : blog
@@ -283,6 +285,7 @@ const Explore = () => {
   const handleViewIncrement = async (blogId) => {
     // Send API request to update views in database
     try {
+      console.log(`Sending view request to ${config.API_ENDPOINTS.BLOG_VIEW}/${blogId}/view`);
       const response = await fetch(`${config.API_ENDPOINTS.BLOG_VIEW}/${blogId}/view`, {
         method: 'POST',
         headers: {
@@ -302,6 +305,7 @@ const Explore = () => {
       }
       
       const data = await response.json();
+      console.log('View response data:', data);
       if (data.success && data.stats) {
         setBlogs(prev => prev.map(blog =>
           blog.id === blogId ? { ...blog, likes: data.stats.likes, views: data.stats.views, comments: data.stats.comments } : blog
@@ -317,6 +321,7 @@ const Explore = () => {
     
     // Send API request to add comment to database
     try {
+      console.log(`Sending comment request to ${config.API_ENDPOINTS.BLOG_COMMENT}/${blogId}/comment`);
       const response = await fetch(`${config.API_ENDPOINTS.BLOG_COMMENT}/${blogId}/comment`, {
         method: 'POST',
         headers: {
@@ -336,6 +341,7 @@ const Explore = () => {
       }
       
       const data = await response.json();
+      console.log('Comment response data:', data);
       if (data.success && data.comment) {
         // Add comment to local state
         const newComment = {
@@ -841,4 +847,4 @@ const Explore = () => {
   );
 };
 
-export default Explore; 
+export default Explore;

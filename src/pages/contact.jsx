@@ -36,7 +36,7 @@ const Contact = () => {
           {/* Contact Information */}
           <div>
             <h2 className="text-2xl font-semibold text-gray-900 mb-6">Contact Information</h2>
-            
+
             <div className="space-y-6">
               <div className="flex items-start space-x-4">
                 <div className="p-3 bg-blue-100 rounded-lg">
@@ -44,8 +44,8 @@ const Contact = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Email</h3>
-                  <p className="text-gray-600">hello@blogsyte.com</p>
-                                      <p className="text-gray-600">support@blogsyte.com</p>
+                  <p className="text-gray-600">blogsyte.@gmail.com</p>
+                  <p className="text-gray-600">blogsyte@gmail.com</p>
                 </div>
               </div>
 
@@ -55,8 +55,8 @@ const Contact = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Phone</h3>
-                  <p className="text-gray-600">+1 (555) 123-4567</p>
-                  <p className="text-gray-600">Mon-Fri 9AM-6PM EST</p>
+                  <p className="text-gray-600">+92 314 1038814</p>
+                  <p className="text-gray-600">Mon-Sat 9AM-6PM EST</p>
                 </div>
               </div>
 
@@ -66,8 +66,8 @@ const Contact = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Address</h3>
-                  <p className="text-gray-600">123 Blogger Avenue</p>
-                  <p className="text-gray-600">San Francisco, CA 94107</p>
+                  <p className="text-gray-600">National Stadium Road</p>
+                  <p className="text-gray-600">Karachi, Pakistan</p>
                 </div>
               </div>
             </div>
@@ -76,7 +76,7 @@ const Contact = () => {
           {/* Contact Form */}
           <div className="bg-white rounded-lg shadow-lg p-8">
             <h2 className="text-2xl font-semibold text-gray-900 mb-6">Send us a Message</h2>
-            
+
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
