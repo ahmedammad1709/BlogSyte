@@ -260,6 +260,21 @@ const Dashboard = () => {
         // Try to get the text response for debugging
         const textResponse = await response.text();
         console.error('Non-JSON response received:', textResponse.substring(0, 200));
+        
+        // Check if this is an HTML error page (common with Vercel 500 errors)
+        if (textResponse.includes('<!doctype html>') || textResponse.includes('<html>')) {
+          console.error('Received HTML error page instead of JSON response');
+          // Set default stats and continue instead of throwing
+          setDashboardStats({
+            totalBlogs: 0,
+            totalLikes: 0,
+            totalComments: 0,
+            totalViews: 0,
+            blogs: []
+          });
+          return; // Exit the function early
+        }
+        
         throw new Error(`Expected JSON response but got ${contentType || 'unknown content type'}`);
       }
       

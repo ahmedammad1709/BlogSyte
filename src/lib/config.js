@@ -1,6 +1,6 @@
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
+  (import.meta.env.DEV ? 'http://localhost:3000' : window.location.origin);
 
 // Debug log for production
 console.log('API Configuration:', {
@@ -39,4 +39,4 @@ export const config = {
   }
 };
 
-export default config; 
+export default config;

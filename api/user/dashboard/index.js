@@ -1,4 +1,4 @@
-const { pool, initDatabase, getUserDashboardStats } = require('../../../lib/db.js');
+const { pool, neonQuery, initDatabase, getUserDashboardStats } = require('../../lib/db.js');
 
 // Initialize database with error handling
 try {
@@ -8,6 +8,9 @@ try {
 }
 
 module.exports = async (req, res) => {
+  // Set proper content type for JSON responses
+  res.setHeader('Content-Type', 'application/json');
+  
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -26,6 +29,8 @@ module.exports = async (req, res) => {
       message: 'Method not allowed' 
     });
   }
+  
+  console.log('Dashboard API request received at:', new Date().toISOString());
 
   try {
     console.log('Dashboard API request received:', req.query);
@@ -41,18 +46,49 @@ module.exports = async (req, res) => {
     // Check if database is connected
     if (!pool) {
       console.error('Database pool is not available');
-      throw new Error('Database connection not available');
+      return res.status(500).json({
+        success: false,
+        message: 'Database connection not available'
+      });
     }
     
     console.log('Checking if user exists with ID:', userId);
 
     // Check if user exists
-    const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
-      });
+    let userResult;
+    try {
+      // Try to use neonQuery first for better serverless compatibility
+      if (neonQuery) {
+        userResult = await neonQuery.query('SELECT * FROM users WHERE id = $1', [userId]);
+      } else {
+        userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+      }
+      
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'User not found' 
+        });
+      }
+    } catch (error) {
+      console.error('Error checking if user exists:', error);
+      // Fallback to pool if neonQuery fails
+      try {
+        userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+        if (userResult.rows.length === 0) {
+          return res.status(404).json({ 
+            success: false, 
+            message: 'User not found' 
+          });
+        }
+      } catch (fallbackError) {
+        console.error('Fallback error checking if user exists:', fallbackError);
+        return res.status(500).json({
+          success: false,
+          message: 'Database error when checking user',
+          error: fallbackError.message
+        });
+      }
     }
 
     // Get user dashboard stats
@@ -124,11 +160,23 @@ module.exports = async (req, res) => {
     
     console.error('Error details:', errorDetails);
     
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error', 
-      error: error.message,
-      details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
+    // Ensure we're sending a JSON response with proper headers
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(500).json({
+      success: false,
+      message: 'Error fetching dashboard data',
+      error: {
+        message: error.message,
+        code: error.code || 'UNKNOWN_ERROR'
+      }
     });
+    
+    // This code is unreachable due to the return above
+    // res.status(500).json({ 
+    //  success: false, 
+    //  message: 'Server error', 
+    //  error: error.message,
+    //  details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
+    // });
   }
 };
