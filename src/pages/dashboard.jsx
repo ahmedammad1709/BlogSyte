@@ -174,10 +174,12 @@ const Dashboard = () => {
 
     setPostsLoading(true);
     try {
+      console.log('Fetching user posts for user ID:', user.id);
       const response = await fetch(`${config.API_ENDPOINTS.BLOG_POSTS}?authorId=${user.id}`);
       const data = await response.json();
 
       if (data.success) {
+        console.log('User posts fetched successfully:', data.posts);
         setUserPosts(data.posts);
         if (showToast) {
           addToast('Data refreshed successfully!', 'success');
@@ -401,7 +403,14 @@ const Dashboard = () => {
       console.log('Updating blog post:', { postId, postData });
       console.log('API endpoint:', `${config.API_ENDPOINTS.BLOG_POSTS}/${postId}`);
       
-      const response = await fetch(`${config.API_ENDPOINTS.BLOG_POSTS}/${postId}`, {
+      // Ensure postId is a valid number
+      const numericPostId = parseInt(postId);
+      if (isNaN(numericPostId)) {
+        console.error('Invalid post ID:', postId);
+        return { success: false, message: 'Invalid blog post ID' };
+      }
+      
+      const response = await fetch(`${config.API_ENDPOINTS.BLOG_POSTS}/${numericPostId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -414,6 +423,14 @@ const Dashboard = () => {
       });
 
       console.log('Update response status:', response.status);
+      
+      // Check if response is ok before parsing JSON
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Update failed with status:', response.status, 'Response:', errorText);
+        return { success: false, message: `Server error: ${response.status}` };
+      }
+      
       const data = await response.json();
       console.log('Update response data:', data);
 
@@ -438,7 +455,14 @@ const Dashboard = () => {
       console.log('Deleting blog post:', postId);
       console.log('API endpoint:', `${config.API_ENDPOINTS.BLOG_POSTS}/${postId}`);
       
-      const response = await fetch(`${config.API_ENDPOINTS.BLOG_POSTS}/${postId}`, {
+      // Ensure postId is a valid number
+      const numericPostId = parseInt(postId);
+      if (isNaN(numericPostId)) {
+        console.error('Invalid post ID:', postId);
+        return { success: false, message: 'Invalid blog post ID' };
+      }
+      
+      const response = await fetch(`${config.API_ENDPOINTS.BLOG_POSTS}/${numericPostId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -446,6 +470,14 @@ const Dashboard = () => {
       });
 
       console.log('Delete response status:', response.status);
+      
+      // Check if response is ok before parsing JSON
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Delete failed with status:', response.status, 'Response:', errorText);
+        return { success: false, message: `Server error: ${response.status}` };
+      }
+      
       const data = await response.json();
       console.log('Delete response data:', data);
 
@@ -536,9 +568,14 @@ const Dashboard = () => {
       let result;
 
       if (editingPost) {
+        console.log('Submitting edit for post:', editingPost);
+        console.log('Form data:', formData);
         result = await updateBlogPost(editingPost.id, formData);
+        console.log('Edit result:', result);
       } else {
+        console.log('Creating new blog post with data:', formData);
         result = await createBlogPost(formData);
+        console.log('Create result:', result);
       }
 
       if (result.success) {
@@ -557,6 +594,7 @@ const Dashboard = () => {
   };
 
   const handleEdit = (post) => {
+    console.log('Edit button clicked for post:', post);
     setEditingPost(post);
     setFormData({
       category: post.category,
@@ -567,13 +605,16 @@ const Dashboard = () => {
   };
 
   const handleDelete = (post) => {
+    console.log('Delete button clicked for post:', post);
     setPostToDelete(post);
     setShowDeleteConfirm(true);
   };
 
   const confirmDelete = async () => {
     if (postToDelete) {
+      console.log('Confirming delete for post:', postToDelete);
       const result = await deleteBlogPost(postToDelete.id);
+      console.log('Delete result:', result);
       if (result.success) {
         addToast(result.message, 'success');
       } else {

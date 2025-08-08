@@ -23,6 +23,18 @@ module.exports = async (req, res) => {
   const pathAction = blogsIndex >= 0 && segments.length > blogsIndex + 2 ? segments[blogsIndex + 2] : undefined;
   const blogId = rawId;
   
+  // Add more detailed logging for debugging
+  console.log('URL parsing debug:', {
+    originalUrl: req.url,
+    pathOnly,
+    segments,
+    blogsIndex,
+    rawId,
+    pathAction,
+    finalBlogId: blogId,
+    method: req.method
+  });
+  
   // Resolve action from query/body or from sub-path (supports both styles)
   const queryAction = req.query?.action;
   const bodyRaw = req.body;
@@ -42,6 +54,15 @@ module.exports = async (req, res) => {
     body: req.body,
     resolvedAction: resolvedAction
   });
+
+  // Test database connection
+  try {
+    await pool.query('SELECT 1');
+    console.log('Database connection test successful');
+  } catch (dbError) {
+    console.error('Database connection test failed:', dbError);
+    return res.status(500).json({ success: false, message: 'Database connection error' });
+  }
 
   // GET - Handle different actions based on path or query
   if (req.method === 'GET') {
@@ -333,14 +354,27 @@ module.exports = async (req, res) => {
   } 
   // PUT - Handle blog update
   else if (req.method === 'PUT') {
+    console.log('PUT request received for blog update:', { blogId, body: req.body });
+    
     if (!blogId) {
+      console.error('PUT request missing blog ID');
       return res.status(400).json({ success: false, message: 'Blog ID is required' });
+    }
+
+    // Validate blog ID is a number
+    const numericBlogId = parseInt(blogId);
+    if (isNaN(numericBlogId)) {
+      console.error('Invalid blog ID format:', blogId);
+      return res.status(400).json({ success: false, message: 'Invalid blog ID format' });
     }
 
     try {
       const { title, description, category } = req.body;
       
+      console.log('Update request data:', { title, description, category });
+      
       if (!title || !description || !category) {
+        console.error('Missing required fields:', { title: !!title, description: !!description, category: !!category });
         return res.status(400).json({ 
           success: false, 
           message: 'All fields are required' 
@@ -348,10 +382,13 @@ module.exports = async (req, res) => {
       }
 
       // Check if blog post exists
-      const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
+      const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [numericBlogId]);
       if (blogResult.rows.length === 0) {
+        console.error('Blog post not found with ID:', numericBlogId);
         return res.status(404).json({ success: false, message: 'Blog post not found' });
       }
+
+      console.log('Blog post found, proceeding with update');
 
       // Update blog post
       const updateQuery = `
@@ -361,12 +398,16 @@ module.exports = async (req, res) => {
         RETURNING id, title, description, category, author_id, author_name, created_at, updated_at
       `;
       
+      console.log('Executing update query with params:', [title, description, category, numericBlogId]);
+      
       const result = await pool.query(updateQuery, [
         title,
         description,
         category,
-        blogId
+        numericBlogId
       ]);
+
+      console.log('Blog post updated successfully:', result.rows[0]);
 
       res.json({ 
         success: true, 
@@ -384,29 +425,46 @@ module.exports = async (req, res) => {
   }
   // DELETE - Handle blog deletion
   else if (req.method === 'DELETE') {
+    console.log('DELETE request received for blog deletion:', { blogId });
+    
     if (!blogId) {
+      console.error('DELETE request missing blog ID');
       return res.status(400).json({ success: false, message: 'Blog ID is required' });
+    }
+
+    // Validate blog ID is a number
+    const numericBlogId = parseInt(blogId);
+    if (isNaN(numericBlogId)) {
+      console.error('Invalid blog ID format:', blogId);
+      return res.status(400).json({ success: false, message: 'Invalid blog ID format' });
     }
 
     try {
       // Check if blog post exists
-      const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
+      const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [numericBlogId]);
       if (blogResult.rows.length === 0) {
+        console.error('Blog post not found with ID:', numericBlogId);
         return res.status(404).json({ success: false, message: 'Blog post not found' });
       }
 
+      console.log('Blog post found, proceeding with deletion');
+
       // Delete blog post
-      await pool.query('DELETE FROM blog_posts WHERE id = $1', [blogId]);
+      console.log('Executing delete query for blog ID:', numericBlogId);
+      await pool.query('DELETE FROM blog_posts WHERE id = $1', [numericBlogId]);
       
       // Delete associated likes, comments, and views
       try {
-        await pool.query('DELETE FROM likes WHERE blog_id = $1', [blogId]);
-        await pool.query('DELETE FROM comments WHERE blog_id = $1', [blogId]);
-        await pool.query('DELETE FROM views WHERE blog_id = $1', [blogId]);
+        await pool.query('DELETE FROM likes WHERE blog_id = $1', [numericBlogId]);
+        await pool.query('DELETE FROM comments WHERE blog_id = $1', [numericBlogId]);
+        await pool.query('DELETE FROM views WHERE blog_id = $1', [numericBlogId]);
+        console.log('Associated data cleaned up successfully');
       } catch (cleanupError) {
         console.error('Error cleaning up associated data:', cleanupError);
         // Continue with the response even if cleanup fails
       }
+
+      console.log('Blog post deleted successfully');
 
       res.json({ 
         success: true, 
