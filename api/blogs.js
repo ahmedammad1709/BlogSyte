@@ -23,15 +23,6 @@ module.exports = async (req, res) => {
   const pathAction = blogsIndex >= 0 && segments.length > blogsIndex + 2 ? segments[blogsIndex + 2] : undefined;
   const blogId = rawId;
   
-  // Add logging for debugging
-  console.log(`API Request: ${req.method} /api/blogs/${blogId}`, {
-    method: req.method,
-    blogId: blogId,
-    url: req.url,
-    query: req.query,
-    body: req.body
-  });
-
   // Resolve action from query/body or from sub-path (supports both styles)
   const queryAction = req.query?.action;
   const bodyRaw = req.body;
@@ -41,105 +32,256 @@ module.exports = async (req, res) => {
   }
   const bodyAction = bodyParsed?.action;
   const resolvedAction = queryAction || bodyAction || pathAction;
+  
+  // Add logging for debugging
+  console.log(`API Request: ${req.method} /api/blogs/${blogId}`, {
+    method: req.method,
+    blogId: blogId,
+    url: req.url,
+    query: req.query,
+    body: req.body,
+    resolvedAction: resolvedAction
+  });
 
-  // GET - Get blog stats, like status, or comments
+  // GET - Handle different actions based on path or query
   if (req.method === 'GET') {
-    const action = resolvedAction;
-    if (action === 'stats') {
+    // If no blogId, this is a request to get all blog posts
+    if (!blogId) {
       try {
-        if (!blogId) return res.status(400).json({ success: false, message: 'Blog ID is required' });
-        const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
-        if (blogResult.rows.length === 0) return res.status(404).json({ success: false, message: 'Blog post not found' });
-        const stats = await getBlogStats(blogId);
-        res.json({ success: true, stats });
+        const { page = 1, limit = 10, category, authorId } = req.query;
+        const offset = (page - 1) * limit;
+        
+        let query = `
+          SELECT 
+            bp.id, 
+            bp.title, 
+            bp.description, 
+            bp.category, 
+            bp.author_id, 
+            bp.author_name, 
+            bp.created_at,
+            bp.updated_at
+          FROM blog_posts bp 
+          WHERE bp.status = 'published'
+        `;
+        
+        const queryParams = [];
+        let paramCount = 0;
+        
+        if (category) {
+          paramCount++;
+          query += ` AND bp.category = $${paramCount}`;
+          queryParams.push(category);
+        }
+        
+        if (authorId) {
+          paramCount++;
+          query += ` AND bp.author_id = $${paramCount}`;
+          queryParams.push(authorId);
+        }
+        
+        query += ` ORDER BY bp.created_at DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
+        queryParams.push(parseInt(limit), offset);
+        
+        const result = await pool.query(query, queryParams);
+        
+        // Get total count for pagination
+        let countQuery = `
+          SELECT COUNT(*) as total 
+          FROM blog_posts bp 
+          WHERE bp.status = 'published'
+        `;
+        
+        const countParams = [];
+        paramCount = 0;
+        
+        if (category) {
+          paramCount++;
+          countQuery += ` AND bp.category = $${paramCount}`;
+          countParams.push(category);
+        }
+        
+        if (authorId) {
+          paramCount++;
+          countQuery += ` AND bp.author_id = $${paramCount}`;
+          countParams.push(authorId);
+        }
+        
+        const countResult = await pool.query(countQuery, countParams);
+        const totalPosts = parseInt(countResult.rows[0].total);
+        
+        // Get stats for each post
+        const postsWithStats = await Promise.all(
+          result.rows.map(async (post) => {
+            const stats = await getBlogStats(post.id);
+            return {
+              ...post,
+              stats
+            };
+          })
+        );
+        
+        res.json({
+          success: true,
+          posts: postsWithStats,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(totalPosts / limit),
+            totalPosts,
+            hasNext: offset + limit < totalPosts,
+            hasPrev: page > 1
+          }
+        });
+        
       } catch (error) {
-        console.error('Error fetching blog stats:', error);
-        res.status(500).json({ success: false, message: 'Failed to fetch blog stats.' });
-      }
-    } else if (action === 'like-status') {
-      try {
-        const { userId } = req.query;
-        if (!blogId || !userId) return res.status(400).json({ success: false, message: 'Blog ID and User ID are required' });
-        const likeResult = await pool.query('SELECT * FROM likes WHERE blog_id = $1 AND user_id = $2', [blogId, userId]);
-        const isLiked = likeResult.rows.length > 0;
-        res.json({ success: true, liked: isLiked });
-      } catch (error) {
-        console.error('Error checking like status:', error);
-        res.status(500).json({ success: false, message: 'Failed to check like status.' });
-      }
-    } else if (action === 'comments') {
-      try {
-        if (!blogId) return res.status(400).json({ success: false, message: 'Blog ID is required' });
-        const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
-        if (blogResult.rows.length === 0) return res.status(404).json({ success: false, message: 'Blog post not found' });
-        const commentsQuery = `SELECT c.id, c.comment_text, c.created_at, u.name as author_name, u.id as user_id FROM comments c JOIN users u ON c.user_id = u.id WHERE c.blog_id = $1 ORDER BY c.created_at DESC`;
-        const result = await pool.query(commentsQuery, [blogId]);
-        res.json({ success: true, comments: result.rows });
-      } catch (error) {
-        console.error('Error fetching comments:', error);
-        res.status(500).json({ success: false, message: 'Failed to fetch comments.' });
+        console.error('Error fetching blog posts:', error);
+        res.status(500).json({ 
+          success: false, 
+          message: 'Failed to fetch blog posts.' 
+        });
       }
     } else {
-      return res.status(400).json({ success: false, message: 'Invalid action. Use stats, like-status, or comments' });
+      // Handle specific blog actions
+      const action = resolvedAction;
+      if (action === 'stats') {
+        try {
+          if (!blogId) return res.status(400).json({ success: false, message: 'Blog ID is required' });
+          const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
+          if (blogResult.rows.length === 0) return res.status(404).json({ success: false, message: 'Blog post not found' });
+          const stats = await getBlogStats(blogId);
+          res.json({ success: true, stats });
+        } catch (error) {
+          console.error('Error fetching blog stats:', error);
+          res.status(500).json({ success: false, message: 'Failed to fetch blog stats.' });
+        }
+      } else if (action === 'like-status') {
+        try {
+          const { userId } = req.query;
+          if (!blogId || !userId) return res.status(400).json({ success: false, message: 'Blog ID and User ID are required' });
+          const likeResult = await pool.query('SELECT * FROM likes WHERE blog_id = $1 AND user_id = $2', [blogId, userId]);
+          const isLiked = likeResult.rows.length > 0;
+          res.json({ success: true, liked: isLiked });
+        } catch (error) {
+          console.error('Error checking like status:', error);
+          res.status(500).json({ success: false, message: 'Failed to check like status.' });
+        }
+      } else if (action === 'comments') {
+        try {
+          if (!blogId) return res.status(400).json({ success: false, message: 'Blog ID is required' });
+          const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
+          if (blogResult.rows.length === 0) return res.status(404).json({ success: false, message: 'Blog post not found' });
+          const commentsQuery = `SELECT c.id, c.comment_text, c.created_at, u.name as author_name, u.id as user_id FROM comments c JOIN users u ON c.user_id = u.id WHERE c.blog_id = $1 ORDER BY c.created_at DESC`;
+          const result = await pool.query(commentsQuery, [blogId]);
+          res.json({ success: true, comments: result.rows });
+        } catch (error) {
+          console.error('Error fetching comments:', error);
+          res.status(500).json({ success: false, message: 'Failed to fetch comments.' });
+        }
+      } else {
+        return res.status(400).json({ success: false, message: 'Invalid action. Use stats, like-status, or comments' });
+      }
     }
   }
-  // POST - Handle like, comment, or view
+  // POST - Handle blog creation, like, comment, or view
   else if (req.method === 'POST') {
-    let body = bodyParsed || {};
-    const action = resolvedAction;
-    if (!action) {
-      return res.status(400).json({ success: false, message: 'Action is required in the request body.' });
-    }
-    if (action === 'like') {
+    // If no blogId, this is a request to create a new blog post
+    if (!blogId) {
       try {
-        const { userId } = body;
-        if (!blogId || !userId) return res.status(400).json({ success: false, message: 'Blog ID and User ID are required' });
-        const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
-        if (blogResult.rows.length === 0) return res.status(404).json({ success: false, message: 'Blog post not found' });
-        const existingLike = await pool.query('SELECT * FROM likes WHERE blog_id = $1 AND user_id = $2', [blogId, userId]);
-        if (existingLike.rows.length > 0) {
-          await pool.query('DELETE FROM likes WHERE blog_id = $1 AND user_id = $2', [blogId, userId]);
-        } else {
-          await pool.query('INSERT INTO likes (blog_id, user_id) VALUES ($1, $2)', [blogId, userId]);
+        const { title, description, category, authorId, authorName } = req.body;
+        
+        if (!title || !description || !category || !authorId || !authorName) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'All fields are required' 
+          });
         }
-        const stats = await getBlogStats(blogId);
-        res.json({ success: true, stats });
+
+        // Insert blog post into database
+        const insertQuery = `
+          INSERT INTO blog_posts (title, description, category, author_id, author_name) 
+          VALUES ($1, $2, $3, $4, $5) 
+          RETURNING id, title, description, category, author_id, author_name, created_at
+        `;
+        
+        const result = await pool.query(insertQuery, [
+          title,
+          description,
+          category,
+          authorId,
+          authorName
+        ]);
+
+        res.json({ 
+          success: true, 
+          message: 'Blog post created successfully',
+          post: result.rows[0]
+        });
+        
       } catch (error) {
-        console.error('Error toggling like:', error);
-        res.status(500).json({ success: false, message: 'Failed to toggle like. Please try again.' });
-      }
-    } else if (action === 'comment') {
-      try {
-        const { userId, commentText } = body;
-        if (!blogId || !userId || !commentText) return res.status(400).json({ success: false, message: 'Blog ID, User ID, and comment text are required' });
-        const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
-        if (blogResult.rows.length === 0) return res.status(404).json({ success: false, message: 'Blog post not found' });
-        const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
-        if (userResult.rows.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
-        const insertQuery = `INSERT INTO comments (blog_id, user_id, comment_text) VALUES ($1, $2, $3) RETURNING id, blog_id, user_id, comment_text, created_at`;
-        const result = await pool.query(insertQuery, [blogId, userId, commentText]);
-        const stats = await getBlogStats(blogId);
-        res.json({ success: true, comment: result.rows[0], stats });
-      } catch (error) {
-        console.error('Error adding comment:', error);
-        res.status(500).json({ success: false, message: 'Failed to add comment. Please try again.' });
-      }
-    } else if (action === 'view') {
-      try {
-        const { userIp, userAgent } = body;
-        if (!blogId) return res.status(400).json({ success: false, message: 'Blog ID is required' });
-        const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
-        if (blogResult.rows.length === 0) return res.status(404).json({ success: false, message: 'Blog post not found' });
-        const insertQuery = `INSERT INTO views (blog_id, user_ip, user_agent) VALUES ($1, $2, $3)`;
-        await pool.query(insertQuery, [blogId, userIp || null, userAgent || null]);
-        const stats = await getBlogStats(blogId);
-        res.json({ success: true, stats });
-      } catch (error) {
-        console.error('Error recording view:', error);
-        res.status(500).json({ success: false, message: 'Failed to record view. Please try again.' });
+        console.error('Error creating blog post:', error);
+        res.status(500).json({ 
+          success: false, 
+          message: 'Failed to create blog post.' 
+        });
       }
     } else {
-      return res.status(400).json({ success: false, message: 'Invalid action. Use like, comment, or view' });
+      // Handle specific blog actions
+      let body = bodyParsed || {};
+      const action = resolvedAction;
+      if (!action) {
+        return res.status(400).json({ success: false, message: 'Action is required in the request body.' });
+      }
+      if (action === 'like') {
+        try {
+          const { userId } = body;
+          if (!blogId || !userId) return res.status(400).json({ success: false, message: 'Blog ID and User ID are required' });
+          const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
+          if (blogResult.rows.length === 0) return res.status(404).json({ success: false, message: 'Blog post not found' });
+          const existingLike = await pool.query('SELECT * FROM likes WHERE blog_id = $1 AND user_id = $2', [blogId, userId]);
+          if (existingLike.rows.length > 0) {
+            await pool.query('DELETE FROM likes WHERE blog_id = $1 AND user_id = $2', [blogId, userId]);
+          } else {
+            await pool.query('INSERT INTO likes (blog_id, user_id) VALUES ($1, $2)', [blogId, userId]);
+          }
+          const stats = await getBlogStats(blogId);
+          res.json({ success: true, stats });
+        } catch (error) {
+          console.error('Error toggling like:', error);
+          res.status(500).json({ success: false, message: 'Failed to toggle like. Please try again.' });
+        }
+      } else if (action === 'comment') {
+        try {
+          const { userId, commentText } = body;
+          if (!blogId || !userId || !commentText) return res.status(400).json({ success: false, message: 'Blog ID, User ID, and comment text are required' });
+          const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
+          if (blogResult.rows.length === 0) return res.status(404).json({ success: false, message: 'Blog post not found' });
+          const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+          if (userResult.rows.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
+          const insertQuery = `INSERT INTO comments (blog_id, user_id, comment_text) VALUES ($1, $2, $3) RETURNING id, blog_id, user_id, comment_text, created_at`;
+          const result = await pool.query(insertQuery, [blogId, userId, commentText]);
+          const stats = await getBlogStats(blogId);
+          res.json({ success: true, comment: result.rows[0], stats });
+        } catch (error) {
+          console.error('Error adding comment:', error);
+          res.status(500).json({ success: false, message: 'Failed to add comment. Please try again.' });
+        }
+      } else if (action === 'view') {
+        try {
+          const { userIp, userAgent } = body;
+          if (!blogId) return res.status(400).json({ success: false, message: 'Blog ID is required' });
+          const blogResult = await pool.query('SELECT * FROM blog_posts WHERE id = $1', [blogId]);
+          if (blogResult.rows.length === 0) return res.status(404).json({ success: false, message: 'Blog post not found' });
+          const insertQuery = `INSERT INTO views (blog_id, user_ip, user_agent) VALUES ($1, $2, $3)`;
+          await pool.query(insertQuery, [blogId, userIp || null, userAgent || null]);
+          const stats = await getBlogStats(blogId);
+          res.json({ success: true, stats });
+        } catch (error) {
+          console.error('Error recording view:', error);
+          res.status(500).json({ success: false, message: 'Failed to record view. Please try again.' });
+        }
+      } else {
+        return res.status(400).json({ success: false, message: 'Invalid action. Use like, comment, or view' });
+      }
     }
   } else {
     return res.status(405).json({ success: false, message: 'Method not allowed' });

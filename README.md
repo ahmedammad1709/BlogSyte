@@ -15,22 +15,25 @@ A modern blog platform built with React, Vite, and Vercel serverless functions.
 
 ```
 BlogHive/
-├── api/                    # Vercel serverless functions
-│   ├── lib/               # Shared modules
-│   │   ├── db.js         # Database connection
-│   │   ├── email.js      # Email service
-│   │   └── otpStorage.js # OTP storage service
-│   ├── send-otp.js       # Send OTP endpoint
-│   ├── verify-otp.js     # Verify OTP endpoint
-│   ├── login.js          # Login endpoint
-│   ├── blog-posts.js     # Blog posts CRUD
-│   ├── blogs/[id]/       # Blog-specific endpoints
-│   ├── admin/            # Admin endpoints
-│   └── user/             # User endpoints
+├── api/                    # Vercel serverless API
+│   ├── auth.js            # Authentication endpoints
+│   ├── blogs.js           # Blog posts CRUD & interactions
+│   ├── contact.js         # Contact form handling
+│   ├── admin/
+│   │   └── index.js       # Admin dashboard endpoints
+│   ├── user/
+│   │   └── dashboard/
+│   │       └── [userId].js # User dashboard endpoints
+│   └── lib/
+│       ├── db.js          # Database connection & utilities
+│       ├── email.js       # Email service
+│       └── otpStorage.js  # OTP temporary storage
 ├── src/                   # React frontend
-├── public/               # Static assets
-├── vercel.json          # Vercel configuration
-└── package.json         # Dependencies
+│   ├── components/        # Reusable UI components
+│   ├── pages/            # Page components
+│   ├── context/          # React context providers
+│   └── lib/              # Frontend utilities
+└── public/               # Static assets
 ```
 
 ## 🛠️ Tech Stack
@@ -82,8 +85,8 @@ vercel --prod
 - `POST /api/login` - User login
 
 ### Blog Posts
-- `GET /api/blog-posts` - Get all blog posts
-- `POST /api/blog-posts` - Create new blog post
+- `GET /api/blogs` - Get all blog posts
+- `POST /api/blogs` - Create new blog post
 - `POST /api/blogs/[id]/like` - Like/unlike blog post
 - `POST /api/blogs/[id]/comment` - Add comment
 - `GET /api/blogs/[id]/comments` - Get comments
