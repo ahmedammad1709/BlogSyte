@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlogHive Delete API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>BlogHive Delete API Test</h1>
+        
+        <div class="test-section">
+            <h3>API Configuration Test</h3>
+            <div id="config-result"></div>
+            <button onclick="testConfig()">Test API Configuration</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Blog Posts List Test</h3>
+            <div id="list-result"></div>
+            <button onclick="testListBlogs()">Get Blog Posts</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Delete Blog Test</h3>
+            <input type="number" id="blogId" placeholder="Enter Blog ID to delete" />
+            <button onclick="testDeleteBlog()">Test Delete Blog</button>
+            <div id="delete-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Console Logs</h3>
+            <div id="console-logs"></div>
+            <button onclick="clearLogs()">Clear Logs</button>
+        </div>
+    </div>
+
+    <script>
+        // Capture console logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const logs = [];
+
+        console.log = function(...args) {
+            logs.push({type: 'log', message: args.join(' '), timestamp: new Date().toISOString()});
+            updateConsoleLogs();
+            originalLog.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            logs.push({type: 'error', message: args.join(' '), timestamp: new Date().toISOString()});
+            updateConsoleLogs();
+            originalError.apply(console, args);
+        };
+
+        function updateConsoleLogs() {
+            const logsDiv = document.getElementById('console-logs');
+            logsDiv.innerHTML = logs.map(log => 
+                `<div class="${log.type === 'error' ? 'error' : 'info'}" style="margin: 5px 0; padding: 5px; font-size: 12px;">
+                    <strong>[${log.timestamp}]</strong> ${log.message}
+                </div>`
+            ).join('');
+        }
+
+        function clearLogs() {
+            logs.length = 0;
+            updateConsoleLogs();
+        }
+
+        // API Configuration
+        const API_BASE_URL = window.location.origin;
+        const API_ENDPOINTS = {
+            BLOG_POSTS: `${API_BASE_URL}/api/blogs`
+        };
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        async function testConfig() {
+            console.log('Testing API Configuration...');
+            const config = {
+                API_BASE_URL,
+                API_ENDPOINTS,
+                currentOrigin: window.location.origin,
+                currentHost: window.location.host
+            };
+            
+            showResult('config-result', `<pre>${JSON.stringify(config, null, 2)}</pre>`, 'info');
+            console.log('API Configuration:', config);
+        }
+
+        async function testListBlogs() {
+            console.log('Testing blog posts list...');
+            try {
+                const response = await fetch(API_ENDPOINTS.BLOG_POSTS, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                console.log('List blogs response status:', response.status);
+                console.log('List blogs response headers:', Object.fromEntries(response.headers.entries()));
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('List blogs error:', errorText);
+                    showResult('list-result', `Error: HTTP ${response.status} - ${errorText}`, 'error');
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('List blogs data:', data);
+                
+                if (data.success && data.posts) {
+                    showResult('list-result', 
+                        `<div class="success">Found ${data.posts.length} blog posts</div>
+                        <pre>${JSON.stringify(data.posts.slice(0, 3), null, 2)}</pre>`, 
+                        'success'
+                    );
+                } else {
+                    showResult('list-result', `Unexpected response: ${JSON.stringify(data)}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error listing blogs:', error);
+                showResult('list-result', `Network Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDeleteBlog() {
+            const blogId = document.getElementById('blogId').value;
+            if (!blogId) {
+                showResult('delete-result', 'Please enter a Blog ID', 'error');
+                return;
+            }
+
+            console.log(`Testing delete for blog ID: ${blogId}`);
+            try {
+                const apiUrl = `${API_ENDPOINTS.BLOG_POSTS}/${blogId}`;
+                console.log('Delete URL:', apiUrl);
+
+                const response = await fetch(apiUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                console.log('Delete response status:', response.status);
+                console.log('Delete response headers:', Object.fromEntries(response.headers.entries()));
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Delete error response:', errorText);
+                    showResult('delete-result', 
+                        `<div class="error">HTTP ${response.status}: ${response.statusText}</div>
+                        <pre>${errorText}</pre>`, 
+                        'error'
+                    );
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('Delete response data:', data);
+
+                if (data.success) {
+                    showResult('delete-result', 
+                        `<div class="success">Blog deleted successfully!</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>`, 
+                        'success'
+                    );
+                } else {
+                    showResult('delete-result', 
+                        `<div class="error">Delete failed: ${data.message}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>`, 
+                        'error'
+                    );
+                }
+            } catch (error) {
+                console.error('Error deleting blog:', error);
+                showResult('delete-result', 
+                    `<div class="error">Network Error: ${error.message}</div>
+                    <div>Check console for more details</div>`, 
+                    'error'
+                );
+            }
+        }
+
+        // Auto-test configuration on load
+        window.onload = function() {
+            testConfig();
+        };
+    </script>
+</body>
+</html>

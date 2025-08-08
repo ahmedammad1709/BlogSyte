@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlogHive API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .card {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4a5568;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2d3748;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>BlogHive API Test</h1>
+    
+    <div class="container">
+        <div class="card">
+            <h2>Create Blog Post</h2>
+            <button id="createBtn">Create Test Post</button>
+            <pre id="createResult">Results will appear here...</pre>
+        </div>
+
+        <div class="card">
+            <h2>Update Blog Post</h2>
+            <input type="number" id="updateId" placeholder="Blog ID" value="1">
+            <button id="updateBtn">Update Post</button>
+            <pre id="updateResult">Results will appear here...</pre>
+        </div>
+
+        <div class="card">
+            <h2>Delete Blog Post</h2>
+            <input type="number" id="deleteId" placeholder="Blog ID" value="1">
+            <button id="deleteBtn">Delete Post</button>
+            <pre id="deleteResult">Results will appear here...</pre>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000';
+        
+        // Create blog post
+        document.getElementById('createBtn').addEventListener('click', async () => {
+            const resultElement = document.getElementById('createResult');
+            resultElement.textContent = 'Creating post...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/blogs`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: 'Test Post ' + new Date().toISOString(),
+                        description: 'This is a test post created from the API test page',
+                        category: 'Technology',
+                        authorId: 1,
+                        authorName: 'Test User'
+                    })
+                });
+                
+                const data = await response.json();
+                resultElement.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultElement.textContent = 'Error: ' + error.message;
+            }
+        });
+        
+        // Update blog post
+        document.getElementById('updateBtn').addEventListener('click', async () => {
+            const blogId = document.getElementById('updateId').value;
+            const resultElement = document.getElementById('updateResult');
+            resultElement.textContent = `Updating post ${blogId}...`;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/blogs/${blogId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: 'Updated Post ' + new Date().toISOString(),
+                        description: 'This post was updated from the API test page',
+                        category: 'Technology'
+                    })
+                });
+                
+                const data = await response.json();
+                resultElement.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultElement.textContent = 'Error: ' + error.message;
+            }
+        });
+        
+        // Delete blog post
+        document.getElementById('deleteBtn').addEventListener('click', async () => {
+            const blogId = document.getElementById('deleteId').value;
+            const resultElement = document.getElementById('deleteResult');
+            resultElement.textContent = `Deleting post ${blogId}...`;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/blogs/${blogId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                resultElement.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultElement.textContent = 'Error: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>

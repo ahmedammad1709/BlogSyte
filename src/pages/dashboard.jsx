@@ -398,6 +398,9 @@ const Dashboard = () => {
   const updateBlogPost = async (postId, postData) => {
     setSubmitting(true);
     try {
+      console.log('Updating blog post:', { postId, postData });
+      console.log('API endpoint:', `${config.API_ENDPOINTS.BLOG_POSTS}/${postId}`);
+      
       const response = await fetch(`${config.API_ENDPOINTS.BLOG_POSTS}/${postId}`, {
         method: 'PUT',
         headers: {
@@ -410,13 +413,16 @@ const Dashboard = () => {
         }),
       });
 
+      console.log('Update response status:', response.status);
       const data = await response.json();
+      console.log('Update response data:', data);
 
       if (data.success) {
         await fetchUserPosts();
         await fetchDashboardStats();
         return { success: true, message: 'Blog post updated successfully!' };
       } else {
+        console.error('Update failed with error:', data.message);
         return { success: false, message: data.message || 'Failed to update blog post' };
       }
     } catch (error) {
@@ -429,17 +435,26 @@ const Dashboard = () => {
 
   const deleteBlogPost = async (postId) => {
     try {
+      console.log('Deleting blog post:', postId);
+      console.log('API endpoint:', `${config.API_ENDPOINTS.BLOG_POSTS}/${postId}`);
+      
       const response = await fetch(`${config.API_ENDPOINTS.BLOG_POSTS}/${postId}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
+      console.log('Delete response status:', response.status);
       const data = await response.json();
+      console.log('Delete response data:', data);
 
       if (data.success) {
         await fetchUserPosts();
         await fetchDashboardStats();
         return { success: true, message: 'Blog post deleted successfully!' };
       } else {
+        console.error('Delete failed with error:', data.message);
         return { success: false, message: data.message || 'Failed to delete blog post' };
       }
     } catch (error) {
@@ -1367,8 +1382,8 @@ const Dashboard = () => {
                         <div
                           key={notification.id}
                           className={`p-3 rounded-lg mb-2 cursor-pointer transition-colors ${notification.read
-                              ? 'bg-gray-50 hover:bg-gray-100'
-                              : 'bg-blue-50 hover:bg-blue-100'
+                            ? 'bg-gray-50 hover:bg-gray-100'
+                            : 'bg-blue-50 hover:bg-blue-100'
                             }`}
                           onClick={() => {
                             if (!notification.read) {
@@ -1454,8 +1469,8 @@ const Dashboard = () => {
                         setIsMobileMenuOpen(false);
                       }}
                       className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === item.id
-                          ? 'bg-purple-100 text-purple-700 border-r-2 border-purple-600'
-                          : 'text-gray-700 hover:bg-gray-100'
+                        ? 'bg-purple-100 text-purple-700 border-r-2 border-purple-600'
+                        : 'text-gray-700 hover:bg-gray-100'
                         }`}
                     >
                       <Icon className="h-5 w-5" />
